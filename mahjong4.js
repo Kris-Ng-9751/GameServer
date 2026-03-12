@@ -301,7 +301,7 @@ document.getElementById("btn-close-win").addEventListener("click", () => {
   }
 });
 
-// 主頁面：開始遊戲
+// 主頁面：開始遊戲（直接進入經典四人麻將界面）
 document.getElementById("btn-start-game").addEventListener("click", () => {
   document.getElementById("home-screen").classList.add("hidden");
   showTopBar();
