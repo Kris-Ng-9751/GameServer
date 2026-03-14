@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<!--
+  ══════════════════════════════════════════════════════════════
+  mobile.html — 四人麻將（手機版）
+  專為觸控橫屏設計，覆蓋 styles.css 中大量桌面版規則
+  - 頂部導覽列隱藏（保留 DOM ID 供 game.js 存取）
+  - 右上角浮動菜單取代原有菜單
+  - 竪屏時顯示旋轉提示（#rotate-prompt）
+  - 首次啟動需輸入玩家名字（name-input-overlay）
+  引用：styles.css / mahjong-core.js / game.js
+  ══════════════════════════════════════════════════════════════
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <!-- user-scalable=no：禁止手勢縮放，避免誤操作 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#041820" />
+  <title>麻將 手機版</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+/* ═══════════════════════════════════════════════════════════════
+   手機版完整覆蓋設計 v2 — Mobile Full Redesign
+   設計原則：橫屏優先、最大化牌桌空間、App 原生風格
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 全局重置 ── */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body.is-mobile {
+  background: radial-gradient(ellipse at 30% 20%, #0d5566 0%, #041820 60%, #000 100%);
+  padding: 0 !important;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ════════════════════════════════════
+   竖屏旋轉提示
+   ════════════════════════════════════ */
+#rotate-prompt {
+  position: fixed; inset: 0; z-index: 999999;
+  background: #041820;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 20px;
+}
+.rotate-phone-wrap {
+  width: 86px; height: 86px;
+  background: rgba(246,183,34,0.08);
+  border: 2px solid rgba(246,183,34,0.3);
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  animation: rotateHint 1.8s ease-in-out infinite;
+}
+.rotate-phone-icon { font-size: 42px; line-height: 1; }
+@keyframes rotateHint {
+  0%,100% { transform: rotate(0deg); }
+  45%,55% { transform: rotate(90deg); }
+}
+.rotate-title { font-size: 1.35rem; font-weight: 800; color: #f6b722; letter-spacing: 0.06em; }
+.rotate-sub { font-size: 0.82rem; color: rgba(255,255,255,0.4); }
+@media (orientation: portrait)  { #rotate-prompt { display: flex !important; } }
+@media (orientation: landscape) { #rotate-prompt { display: none !important; } }
+
+/* ════════════════════════════════════
+   主頁 — 橫屏兩欄佈局
+   ════════════════════════════════════ */
+body.is-mobile .home-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  z-index: 1000 !important;
+}
+body.is-mobile .home-screen.hidden { display: none !important; }
+
+/* ── 主頁左欄 ── */
+body.is-mobile .mobile-home-left {
+  width: 44%;
+  min-width: 210px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(env(safe-area-inset-top,14px),14px) 22px max(env(safe-area-inset-bottom,14px),14px) max(env(safe-area-inset-left,18px),22px);
+  background: linear-gradient(170deg, rgba(13,75,95,0.9) 0%, rgba(4,24,32,0.95) 100%);
+  border-right: 1px solid rgba(246,183,34,0.1);
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+body.is-mobile .mobile-home-left::before {
+  content: '🀇';
+  position: absolute;
+  font-size: 180px;
+  opacity: 0.035;
+  bottom: -40px; left: -24px;
+  pointer-events: none;
+  user-select: none;
+  filter: blur(3px);
+}
+
+/* 遊戲標誌 */
+body.is-mobile .mobile-logo { text-align: center; }
+body.is-mobile .mobile-logo-deco {
+  font-size: 1.15rem;
+  letter-spacing: 5px;
+  opacity: 0.45;
+  display: block;
+  margin-bottom: 5px;
+}
+body.is-mobile .mobile-logo-title {
+  font-size: clamp(1.55rem, 4.2vw, 2.2rem);
+  font-weight: 900;
+  color: #f6b722;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 28px rgba(246,183,34,0.5), 0 2px 4px rgba(0,0,0,0.5);
+  display: block;
+  line-height: 1.1;
+}
+body.is-mobile .mobile-logo-sub {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 0.05em;
+  display: block;
+  margin-top: 4px;
+}
+
+/* ── 玩家資料卡 ── */
+body.is-mobile .player-profile-card {
+  position: static !important;
+  width: 100% !important;
+  max-width: 270px !important;
+  padding: 11px 14px !important;
+  background: rgba(246,183,34,0.06) !important;
+  border: 1px solid rgba(246,183,34,0.18) !important;
+  border-radius: 16px !important;
+  gap: 11px !important;
+  margin: 0 !important;
+  display: flex !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
+}
+body.is-mobile .profile-avatar-wrap {
+  width: 44px !important; height: 44px !important; min-width: 44px;
+  border-radius: 12px !important;
+  background: rgba(246,183,34,0.12) !important;
+  border: 1.5px solid rgba(246,183,34,0.25) !important;
+}
+body.is-mobile .profile-avatar { font-size: 1.45rem !important; }
+body.is-mobile .profile-avatar-edit {
+  font-size: 0.6rem !important;
+  background: rgba(246,183,34,0.85) !important;
+  color: #1a0d00 !important;
+  border-radius: 4px !important;
+  padding: 1px 3px !important;
+}
+body.is-mobile .profile-name {
+  font-size: 0.9rem !important;
+  font-weight: 800;
+  color: #fff !important;
+  cursor: pointer;
+}
+body.is-mobile .profile-name:hover { color: #f6b722 !important; }
+body.is-mobile .profile-name-edit-btn {
+  font-size: 0.72rem !important;
+  opacity: 0.6;
+  color: #f6b722 !important;
+}
+body.is-mobile .profile-balance-label { font-size: 0.63rem !important; color: rgba(255,255,255,0.45) !important; }
+body.is-mobile .profile-balance-val {
+  font-size: 0.92rem !important;
+  font-weight: 800;
+  color: #f6b722 !important;
+}
+
+/* ── 開始遊戲按鈕 ── */
+body.is-mobile .mobile-start-btn-wrap {
+  width: 100%;
+  max-width: 270px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+body.is-mobile #btn-start-game {
+  width: 100% !important;
+  padding: 14px 0 !important;
+  font-size: 1.08rem !important;
+  font-weight: 900 !important;
+  border-radius: 16px !important;
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, #f6c832 0%, #e89000 100%) !important;
+  color: #1a0900 !important;
+  border: none !important;
+  box-shadow: 0 4px 22px rgba(246,183,34,0.5), 0 1px 0 rgba(255,255,255,0.2) inset !important;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+body.is-mobile #btn-start-game:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(246,183,34,0.3) !important;
+}
+body.is-mobile .mobile-hint {
+  font-size: 0.67rem;
+  color: rgba(255,255,255,0.3);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* ── 主頁右欄 ── */
+body.is-mobile .mobile-home-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(env(safe-area-inset-top,12px),12px) max(env(safe-area-inset-right,16px),16px) max(env(safe-area-inset-bottom,12px),12px) 16px;
+  gap: 11px;
+}
+
+/* 三人麻將卡（即將推出） */
+body.is-mobile .mobile-coming-soon {
+  width: 100%;
+  max-width: 330px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+body.is-mobile .mobile-coming-deco { font-size: 1.45rem; opacity: 0.45; }
+body.is-mobile .mobile-coming-info { flex: 1; }
+body.is-mobile .mobile-coming-title {
+  font-size: 0.93rem; font-weight: 800; color: rgba(255,255,255,0.45);
+  display: block; margin-bottom: 2px;
+}
+body.is-mobile .mobile-coming-sub { font-size: 0.68rem; color: rgba(255,255,255,0.28); }
+body.is-mobile .mobile-coming-badge {
+  font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.32);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 999px; padding: 3px 9px;
+  white-space: nowrap;
+}
+
+/* ── 工具按鈕格 ── */
+body.is-mobile .mobile-tools-grid {
+  width: 100%;
+  max-width: 330px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+body.is-mobile .mobile-tool-btn {
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 13px 12px;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+body.is-mobile .mobile-tool-btn:active {
+  background: rgba(246,183,34,0.12);
+  border-color: rgba(246,183,34,0.25);
+  color: #f6b722;
+}
+body.is-mobile .mobile-tool-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+/* 隱藏桌面版首頁原有元素 */
+body.is-mobile .home-panel,
+body.is-mobile .home-panel-secondary,
+body.is-mobile .home-right-menu { display: none !important; }
+
+/* ── 頭像選擇器 ── */
+body.is-mobile .avatar-picker {
+  position: fixed !important;
+  top: 50% !important; left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: calc(100vw - 40px) !important;
+  max-width: 360px !important;
+  z-index: 2000;
+  border-radius: 20px !important;
+  padding: 18px 16px !important;
+}
+
+/* ════════════════════════════════════
+   姓名輸入 overlay（手機首次啟動）
+   ════════════════════════════════════ */
+body.is-mobile .name-input-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 3000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(4,24,32,0.92) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 20px !important;
+}
+body.is-mobile .name-input-overlay.hidden { display: none !important; }
+body.is-mobile .name-input-panel {
+  width: 100% !important;
+  max-width: 340px !important;
+  background: linear-gradient(160deg, #0d4b5e 0%, #041820 100%) !important;
+  border: 1px solid rgba(246,183,34,0.22) !important;
+  border-radius: 24px !important;
+  padding: 28px 24px 26px !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(246,183,34,0.1) !important;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+body.is-mobile .name-input-title {
+  font-size: 1.5rem !important;
+  font-weight: 900 !important;
+  color: #f6b722 !important;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 20px rgba(246,183,34,0.4);
+}
+body.is-mobile .name-input-subtitle {
+  font-size: 0.85rem !important;
+  color: rgba(255,255,255,0.5) !important;
+  margin: 0 !important;
+  line-height: 1.4;
+}
+body.is-mobile .name-input-field {
+  width: 100% !important;
+  padding: 13px 16px !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(246,183,34,0.3) !important;
+  background: rgba(255,255,255,0.07) !important;
+  color: #fff !important;
+  outline: none !important;
+  text-align: center !important;
+  letter-spacing: 0.05em;
+  transition: border-color 0.15s, background 0.15s;
+}
+body.is-mobile .name-input-field:focus {
+  border-color: rgba(246,183,34,0.6) !important;
+  background: rgba(255,255,255,0.1) !important;
+}
+body.is-mobile .name-confirm-btn {
+  width: 100% !important;
+  padding: 13px 0 !important;
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  border-radius: 14px !important;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #f6c832 0%, #e89000 100%) !important;
+  color: #1a0900 !important;
+  border: none !important;
+  box-shadow: 0 4px 18px rgba(246,183,34,0.4) !important;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+body.is-mobile .name-confirm-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(246,183,34,0.25) !important;
+}
+
+/* ════════════════════════════════════
+   頂部導覽列：手機版完全隱藏
+   保留 DOM 供 game.js 的 show/hide/offsetHeight 使用
+   ════════════════════════════════════ */
+body.is-mobile #top-bar {
+  display: none !important;
+  height: 0 !important;
+}
+
+/* ════════════════════════════════════
+   右上角浮動控制列（聲音 + 菜單）
+   ════════════════════════════════════ */
+body.is-mobile .mobile-float-controls {
+  position: fixed;
+  top: max(env(safe-area-inset-top, 8px), 8px);
+  right: max(env(safe-area-inset-right, 8px), 8px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(4, 24, 32, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+}
+body.is-mobile .game-menu-btn {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  min-height: 28px;
+  background: rgba(246,183,34,0.14) !important;
+  border: 1px solid rgba(246,183,34,0.3) !important;
+  color: #f6b722 !important;
+}
+body.is-mobile .game-menu-btn:active {
+  background: rgba(246,183,34,0.24) !important;
+}
+
+/* 下拉菜單 */
+body.is-mobile .game-menu-dropdown {
+  position: fixed !important;
+  top: max(calc(env(safe-area-inset-top, 8px) + 50px), 58px) !important;
+  right: max(env(safe-area-inset-right, 8px), 8px) !important;
+  min-width: 164px !important;
+  max-width: 210px !important;
+  background: rgba(4,24,32,0.97) !important;
+  border: 1px solid rgba(246,183,34,0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 36px rgba(0,0,0,0.75) !important;
+  z-index: 9999 !important;
+  overflow: hidden !important;
+}
+body.is-mobile .game-menu-item {
+  font-size: 0.85rem !important;
+  padding: 13px 16px !important;
+  min-height: 48px !important;
+  width: 100%;
+  text-align: left;
+}
+body.is-mobile .game-menu-item:active {
+  background: rgba(246,183,34,0.12) !important;
+}
+body.is-mobile .game-menu-item--new {
+  color: #f6b722 !important;
+  font-weight: 800 !important;
+}
+body.is-mobile .game-menu-item--new:active {
+  background: rgba(246,183,34,0.15) !important;
+}
+body.is-mobile .game-menu-item--exit {
+  color: #e07070 !important;
+  font-weight: 700 !important;
+}
+body.is-mobile .game-menu-item--exit:active {
+  background: rgba(220,60,60,0.12) !important;
+}
+body.is-mobile .game-menu-item--bgm {
+  color: rgba(255,255,255,0.75) !important;
+}
+body.is-mobile .game-menu-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 2px 0;
+}
+
+/* ════════════════════════════════════
+   遊戲牌桌 — 最大化空間（無頂欄佔位）
+   ════════════════════════════════════ */
+body.is-mobile #app { padding-top: 0 !important; }
+body.is-mobile #app {
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
+body.is-mobile .table {
+  width: 100% !important;
+  height: 100% !important;
+  gap: 2px !important;
+  padding: 2px 4px 2px max(env(safe-area-inset-left,4px),4px) !important;
+}
+
+/* 玩家手牌橫向可捲，padding-right 讓末尾摸牌遠離滾動容器右邊界 */
+body.is-mobile .hand-player {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none;
+  padding-right: 12px !important;
+}
+body.is-mobile .hand-player::-webkit-scrollbar { display: none; }
+
+/* 訊息面板：手機隱藏 */
+body.is-mobile .log-panel-float { display: none !important; }
+
+/* ── 行動按鈕：手牌右側竖排 ── */
+body.is-mobile #action-bar {
+  position: static !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: none !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  gap: 3px !important;
+  padding: 0 0 0 5px !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  z-index: auto !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+}
+body.is-mobile .btn-action {
+  min-width: 42px !important;
+  min-height: 0 !important;
+  flex: 1 !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  padding: 3px 6px !important;
+  border-radius: 8px !important;
+  border-width: 1.5px !important;
+  letter-spacing: 0.01em;
+  transition: transform 0.1s, opacity 0.1s;
+  white-space: nowrap;
+}
+body.is-mobile .btn-action:active { transform: scale(0.92); }
+
+/* ════════════════════════════════════
+   骰子 overlay — 緊湊可滾
+   ════════════════════════════════════ */
+body.is-mobile .dice-overlay {
+  align-items: center !important;
+  justify-content: center !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  padding: 10px 12px !important;
+}
+body.is-mobile .dice-panel {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  grid-template-areas:
+    "title title"
+    "subtitle subtitle"
+    "rate rate"
+    "dice result"
+    "btn btn" !important;
+  align-items: center !important;
+  width: min(96vw, 560px) !important;
+  min-width: unset !important;
+  padding: 18px 20px 22px !important;
+  gap: 10px !important;
+  position: relative !important;
+  border-radius: 22px !important;
+}
+body.is-mobile .btn-dice-exit { grid-area: unset; position: absolute; top: 12px; right: 14px; }
+body.is-mobile .dice-title { grid-area: title; font-size: 1.1rem !important; text-align: center; }
+body.is-mobile .dice-subtitle { grid-area: subtitle; font-size: 0.72rem !important; margin-top: 0 !important; text-align: center; }
+body.is-mobile .rate-selector { grid-area: rate; width: 100%; }
+body.is-mobile .dice-display { grid-area: dice; justify-content: center; gap: 14px !important; padding: 4px 0 !important; }
+body.is-mobile .die { font-size: 50px !important; }
+body.is-mobile .dice-result-text { grid-area: result; font-size: 0.82rem !important; text-align: center; min-height: unset !important; }
+body.is-mobile #btn-roll-dice { grid-area: btn; width: 100%; }
+body.is-mobile .rate-options { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
+body.is-mobile .rate-btn { padding: 8px 4px !important; font-size: 0.78rem !important; border-radius: 10px !important; }
+
+/* ════════════════════════════════════
+   胡牌 overlay — 可滾
+   ════════════════════════════════════ */
+body.is-mobile .win-overlay {
+  align-items: flex-start !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  padding: max(env(safe-area-inset-top,8px),8px) 6px max(env(safe-area-inset-bottom,16px),16px) !important;
+}
+body.is-mobile .win-panel {
+  width: calc(100vw - 12px) !important;
+  max-width: 700px !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  padding: 12px 16px 20px !important;
+  margin: 0 auto !important;
+  border-radius: 20px !important;
+}
+body.is-mobile .win-title { font-size: clamp(2rem, 12vw, 3.5rem) !important; letter-spacing: 0.12em !important; }
+body.is-mobile .win-all-hands { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+body.is-mobile .wah-hand-row { flex-wrap: nowrap !important; overflow-x: auto !important; }
+
+/* ════════════════════════════════════
+   其他 overlay 共用優化
+   ════════════════════════════════════ */
+body.is-mobile .chi-select-panel {
+  width: calc(100vw - 20px) !important; max-width: 380px !important;
+  border-radius: 20px !important;
+}
+body.is-mobile .tenpai-panel { width: min(680px, 96vw) !important; max-height: 85vh !important; }
+body.is-mobile .tile-ref-panel { width: 96vw !important; max-height: 87vh !important; }
+body.is-mobile .yaku-info-box { width: calc(100vw - 32px) !important; max-width: 360px !important; }
+body.is-mobile .win-history-panel { width: calc(100vw - 16px) !important; max-height: 85vh !important; }
+body.is-mobile .win-detail-panel { width: calc(100vw - 12px) !important; max-height: 90vh !important; }
+
+/* ════════════════════════════════════
+   安全區 padding 補償
+   ════════════════════════════════════ */
+body.is-mobile .seat-south {
+  padding-bottom: max(env(safe-area-inset-bottom,4px),4px) !important;
+}
+  </style>
+</head>
+<body class="is-mobile">
+  <!-- BGM -->
+  <audio id="bgm" loop preload="auto">
+    <source src="bgm.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ══ 頂部導覽列（手機版隱藏，保留 ID 供 game.js 使用）══ -->
+  <div id="top-bar" class="top-bar" aria-hidden="true">
+    <span id="dealer-name" style="display:none"></span>
+    <span id="current-player" style="display:none"></span>
+  </div>
+
+  <!-- bgm-volume 保留供 game.js 讀寫，不顯示 -->
+  <input id="bgm-volume" class="bgm-volume" type="range" min="0" max="1" step="0.05" value="0.4" style="display:none">
+
+  <!-- ══ 手機版：右上角浮動菜單（新局/退出/聲音/胡牌記錄等）══ -->
+  <div id="mobile-float-controls" class="mobile-float-controls">
+    <button id="btn-game-menu" class="game-menu-btn">☰</button>
+    <div id="game-menu-dropdown" class="game-menu-dropdown hidden">
+      <button class="game-menu-item game-menu-item--new" id="btn-new-game">🀄 新局</button>
+      <button class="game-menu-item game-menu-item--exit" id="btn-exit">✕ 退出</button>
+      <div class="game-menu-divider"></div>
+      <button class="game-menu-item game-menu-item--bgm" id="btn-bgm-toggle">🔊 聲音開關</button>
+      <button class="game-menu-item" id="btn-show-win">📋 胡牌記錄</button>
+      <button class="game-menu-item" id="btn-game-yaku-rules">📋 胡牌規則</button>
+      <button class="game-menu-item" id="btn-game-tile-ref">🀇 牌型總覽</button>
+      <button class="game-menu-item" id="btn-game-kbd">⌨ 鍵盤操作</button>
+    </div>
+  </div>
+
+  <!-- ══ 遊戲牌桌（手機版：無頂欄佔位，最大化牌桌空間）══ -->
+  <div id="app">
+    <div class="table-wrapper">
+    <main class="table">
+      <!-- 北家 -->
+      <section class="seat seat-north">
+        <div class="seat-label">
+          <span class="game-avatar">🤖</span>人機1
+          <span id="dealer-badge-north" class="dealer-badge hidden">庄家</span>
+          <span id="score-north" class="seat-score">10,000</span>
+        </div>
+        <div id="feis-north" style="display:none"></div>
+        <div class="ai-hand-flower-row">
+          <div id="ai-north-hand" class="hand hand-ai"></div>
+          <div id="melds-north" class="melds-row"></div>
+        </div>
+        <div class="flowers-row">
+          <div id="flowers-north" class="flowers"></div>
+        </div>
+      </section>
+
+      <!-- 中央棄牌 -->
+      <section class="middle-area">
+        <div class="discard-center">
+          <div class="dc-compass-row">
+            <div class="dc-cell dc-north">
+              <div id="discard-north" class="discard-row discard-row-h"></div>
+            </div>
+          </div>
+          <div class="dc-compass-mid">
+            <div class="dc-cell dc-west">
+              <div id="discard-west" class="discard-row discard-row-v"></div>
+            </div>
+            <div class="dc-center-void">
+              <div id="turn-compass" class="turn-compass">
+                <div class="tc-arrow tc-north" data-seat="N"><span class="tc-dir">北</span>▲</div>
+                <div class="tc-middle-row">
+                  <div class="tc-arrow tc-west" data-seat="W"><span class="tc-dir">西</span>◀</div>
+                  <div class="tc-wall">
+                    <span class="tc-wall-label">牌山</span>
+                    <span id="wall-count" class="tc-wall-count">0</span>
+                  </div>
+                  <div class="tc-arrow tc-east" data-seat="E">▶<span class="tc-dir">東</span></div>
+                </div>
+                <div class="tc-arrow tc-south" data-seat="S">▼<span class="tc-dir">南</span></div>
+              </div>
+            </div>
+            <div class="dc-cell dc-east">
+              <div id="discard-east" class="discard-row discard-row-v"></div>
+            </div>
+          </div>
+          <div class="dc-compass-row">
+            <div class="dc-cell dc-south">
+              <div id="discard-south" class="discard-row south-discard-row"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 南家（玩家） -->
+      <section class="seat seat-south">
+        <div class="seat-label">
+          <span id="game-player-avatar" class="game-avatar">🀄</span>
+          <span id="south-seat-name">玩家</span>
+          <span id="dealer-badge-south" class="dealer-badge hidden">庄家</span>
+          <span id="score-south" class="seat-score">10,000</span>
+        </div>
+        <div id="feis-south" style="display:none"></div>
+        <div class="hand-center">
+          <div class="flowers-row flowers-row-above">
+            <div id="flowers-south" class="flowers"></div>
+          </div>
+          <div class="hand-melds-row">
+            <div id="melds-south" class="melds-row melds-south"></div>
+            <div id="player-hand" class="hand hand-player"></div>
+            <div id="action-bar" class="action-bar" style="display:none">
+              <button id="btn-chi"      class="btn-action btn-chi-action">吃</button>
+              <button id="btn-peng"     class="btn-action btn-peng-action">碰</button>
+              <button id="btn-gang"     class="btn-action btn-gang-action">槓</button>
+              <button id="btn-swap-fei" class="btn-action btn-swap-action">換飛</button>
+              <button id="btn-tenpai"    class="btn-action btn-tenpai-action">聽牌</button>
+              <button id="btn-win"       class="btn-action btn-win-action">胡</button>
+              <button id="btn-pass"      class="btn-action btn-pass-action">過</button>
+              <button id="btn-recommend" class="btn-action btn-recommend-action" title="推薦打法 [R]">💡</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 西家 -->
+      <section class="seat seat-west">
+        <div class="seat-label">
+          <span class="game-avatar">🦁</span>人機2
+          <span id="dealer-badge-west" class="dealer-badge hidden">庄家</span>
+          <span id="score-west" class="seat-score">10,000</span>
+        </div>
+        <div id="feis-west" style="display:none"></div>
+        <div class="ai-hand-flower-row">
+          <div class="ai-hand-melds-col">
+            <div id="melds-west" class="melds-row"></div>
+            <div id="ai-west-hand" class="hand hand-ai"></div>
+          </div>
+          <div class="flowers-row flowers-row-side">
+            <div id="flowers-west" class="flowers flowers-col"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 東家 -->
+      <section class="seat seat-east">
+        <div class="seat-label">
+          <span class="game-avatar">🐯</span>人機3
+          <span id="dealer-badge-east" class="dealer-badge hidden">庄家</span>
+          <span id="score-east" class="seat-score">10,000</span>
+        </div>
+        <div id="feis-east" style="display:none"></div>
+        <div class="ai-hand-flower-row">
+          <div class="flowers-row flowers-row-side">
+            <div id="flowers-east" class="flowers flowers-col"></div>
+          </div>
+          <div class="ai-hand-melds-col">
+            <div id="ai-east-hand" class="hand hand-ai"></div>
+            <div id="melds-east" class="melds-row"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    </div><!-- /.table-wrapper -->
+  </div><!-- /#app -->
+
+  <!-- 動作顯示 -->
+  <div id="action-overlay" class="action-overlay hidden">
+    <span id="action-text" class="action-text"></span>
+  </div>
+
+  <!-- ══ 手機版主頁面（橫屏兩欄佈局：左=logo+資料卡+開始，右=工具）══ -->
+  <div id="home-screen" class="home-screen">
+
+    <!-- 左欄 -->
+    <div class="mobile-home-left">
+      <!-- Logo -->
+      <div class="mobile-logo">
+        <span class="mobile-logo-deco">🀇 🀙 🀄 🀁 🀅</span>
+        <span class="mobile-logo-title">四人麻將</span>
+        <span class="mobile-logo-sub">手機版 · 純前端 Demo</span>
+      </div>
+
+      <!-- 玩家資料卡（由 game.js 控制顯示） -->
+      <div class="player-profile-card" id="player-profile-card">
+        <div class="profile-avatar-wrap" id="btn-pick-avatar" title="更換頭像">
+          <div class="profile-avatar" id="profile-avatar">🀄</div>
+          <div class="profile-avatar-edit">✎</div>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name-row">
+            <div class="profile-name" id="profile-name">玩家</div>
+            <span class="profile-name-edit-btn" id="btn-edit-name" title="編輯名字">✎</span>
+          </div>
+          <div class="profile-balance-row">
+            <span class="profile-balance-label">余额</span>
+            <span class="profile-balance-val" id="profile-balance">10,000</span>
+            <button id="btn-reset-balance" class="btn-reset-balance" title="重置余額為 10,000">↺</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 人機難度選擇 -->
+      <div class="difficulty-selector" id="difficulty-selector">
+        <span class="difficulty-label">人機難度</span>
+        <div class="difficulty-btns">
+          <button class="diff-btn" data-diff="easy">簡單</button>
+          <button class="diff-btn diff-btn-active" data-diff="normal">普通</button>
+          <button class="diff-btn" data-diff="hard">困難</button>
+        </div>
+      </div>
+      <!-- 開始按鈕 -->
+      <div class="mobile-start-btn-wrap">
+        <button id="btn-start-game" class="btn-start-game">開始遊戲</button>
+        <div class="mobile-hint">每局擲骰子決定庄家</div>
+      </div>
+    </div>
+
+    <!-- 右欄 -->
+    <div class="mobile-home-right">
+      <!-- 三人麻將（即將推出） -->
+      <div class="mobile-coming-soon">
+        <span class="mobile-coming-deco">🀇 🀙 🀁</span>
+        <div class="mobile-coming-info">
+          <span class="mobile-coming-title">三人麻將</span>
+          <span class="mobile-coming-sub">玩家 VS 2位人機</span>
+        </div>
+        <span class="mobile-coming-badge">即將推出</span>
+      </div>
+
+      <!-- 工具按鈕 -->
+      <div class="mobile-tools-grid">
+        <button id="btn-home-preview" class="mobile-tool-btn">
+          <span class="mobile-tool-icon">🖼</span>介面預覽
+        </button>
+        <button id="btn-view-tiles" class="mobile-tool-btn">
+          <span class="mobile-tool-icon">🀇</span>牌型總覽
+        </button>
+        <button id="btn-yaku-rules" class="mobile-tool-btn">
+          <span class="mobile-tool-icon">📋</span>胡牌規則
+        </button>
+        <a href="index.html" class="mobile-tool-btn">
+          <span class="mobile-tool-icon">🖥</span>桌面版
+        </a>
+      </div>
+      <!-- 聲音設置 -->
+      <div class="mobile-home-sound-row">
+        <button id="btn-home-sound-toggle" class="mobile-home-sound-btn">
+          <span id="home-sound-icon">🔊</span><span id="home-sound-label">聲音：開</span>
+        </button>
+        <input id="home-bgm-volume" class="bgm-volume" type="range" min="0" max="1" step="0.05" value="0.4">
+      </div>
+    </div>
+
+    <!-- 頭像選擇器 -->
+    <div id="avatar-picker" class="avatar-picker hidden">
+      <div class="avatar-picker-title">選擇頭像</div>
+      <div class="avatar-grid">
+        <button class="avatar-opt" data-avatar="🀄">🀄</button>
+        <button class="avatar-opt" data-avatar="🎴">🎴</button>
+        <button class="avatar-opt" data-avatar="🃏">🃏</button>
+        <button class="avatar-opt" data-avatar="🎰">🎰</button>
+        <button class="avatar-opt" data-avatar="🦁">🦁</button>
+        <button class="avatar-opt" data-avatar="🐯">🐯</button>
+        <button class="avatar-opt" data-avatar="🐉">🐉</button>
+        <button class="avatar-opt" data-avatar="🦊">🦊</button>
+        <button class="avatar-opt" data-avatar="🐼">🐼</button>
+        <button class="avatar-opt" data-avatar="👑">👑</button>
+        <button class="avatar-opt" data-avatar="⭐">⭐</button>
+        <button class="avatar-opt" data-avatar="🎭">🎭</button>
+      </div>
+      <button id="btn-avatar-close" class="btn">關閉</button>
+    </div>
+
+  </div>
+
+  <!-- ══ 所有 Overlay / Modal（預設隱藏）══ -->
+
+  <!-- 擲骰子決定庄家 -->
+  <div id="dice-overlay" class="dice-overlay hidden">
+    <div class="dice-panel">
+      <button id="btn-dice-exit" class="btn-dice-exit">✕ 退出</button>
+      <div class="dice-title">擲骰定庄家</div>
+      <div class="dice-subtitle">骰子決定誰是本局庄家（先手出牌）</div>
+      <div class="rate-selector">
+        <div class="rate-label">選擇賠率（每番）</div>
+        <div class="rate-options" id="rate-options">
+          <button class="rate-btn active" data-rate="100">100</button>
+          <button class="rate-btn" data-rate="300">300</button>
+          <button class="rate-btn" data-rate="500">500</button>
+          <button class="rate-btn" data-rate="700">700</button>
+          <button class="rate-btn" data-rate="1000">1,000</button>
+          <button class="rate-btn" data-rate="3000">3,000</button>
+        </div>
+      </div>
+      <div class="dice-display">
+        <span id="die1" class="die">⚁</span>
+        <span id="die2" class="die">⚃</span>
+      </div>
+      <div id="dice-result-text" class="dice-result-text"></div>
+      <button id="btn-roll-dice" class="btn primary">擲骰子</button>
+    </div>
+  </div>
+
+  <!-- 吃牌組合選擇 -->
+  <div id="chi-select-overlay" class="chi-select-overlay hidden">
+    <div class="chi-select-panel">
+      <div class="chi-select-title">選擇吃牌方式</div>
+      <div id="chi-select-options" class="chi-select-options"></div>
+      <button class="btn" id="btn-chi-cancel">取消</button>
+    </div>
+  </div>
+
+  <!-- 胡牌結算畫面 -->
+  <div id="win-overlay" class="win-overlay hidden">
+    <div class="win-panel">
+      <div class="win-panel-toolbar">
+        <button id="btn-win-exit" class="btn-dice-exit">✕ 退出</button>
+        <button id="btn-win-dismiss" class="btn-win-dismiss" title="關閉">✕</button>
+      </div>
+      <div class="win-title">胡啦！</div>
+      <div id="win-player-name" class="win-player-name"></div>
+      <div id="win-type" class="win-type"></div>
+      <div id="win-yaku" class="win-yaku"></div>
+      <div id="win-score" class="win-score"></div>
+      <div id="win-all-hands" class="win-all-hands"></div>
+      <div id="bankrupt-notice" class="bankrupt-notice hidden"></div>
+      <button class="btn primary" id="btn-close-win">開始新局</button>
+    </div>
+  </div>
+
+  <!-- 訊息面板（手機隱藏） -->
+  <div id="log-panel" class="log-panel log-panel-float" style="display:none">
+    <div class="log-header log-drag-handle">訊息記錄</div>
+    <div id="log" class="log"></div>
+  </div>
+
+  <!-- 推薦打法 overlay -->
+  <div id="recommend-overlay" class="tenpai-overlay" style="display:none">
+    <div class="tenpai-panel">
+      <div class="tenpai-header">
+        <span>💡 推薦打法</span>
+        <button id="btn-recommend-close" class="tenpai-close-btn">✕</button>
+      </div>
+      <div id="recommend-body" class="tenpai-body"></div>
+    </div>
+  </div>
+
+  <!-- 聽牌分析 -->
+  <div id="tenpai-overlay" class="tenpai-overlay" style="display:none">
+    <div class="tenpai-panel">
+      <div class="tenpai-header">
+        <span>聽牌分析</span>
+        <button id="btn-tenpai-close" class="tenpai-close-btn">✕</button>
+      </div>
+      <div id="tenpai-body" class="tenpai-body"></div>
+    </div>
+  </div>
+
+  <!-- 鍵盤快捷鍵說明 Overlay -->
+  <div id="kbd-overlay" class="tile-ref-overlay" style="display:none">
+    <div class="tile-ref-panel kbd-panel">
+      <div class="tile-ref-header">
+        <span>⌨ 鍵盤操作說明</span>
+        <button id="btn-kbd-close" class="tenpai-close-btn">✕</button>
+      </div>
+      <div class="kbd-body">
+        <div class="kbd-section-title">行動按鍵</div>
+        <div class="kbd-grid">
+          <div class="kbd-row"><kbd>P</kbd><span>碰牌</span></div>
+          <div class="kbd-row"><kbd>C</kbd><span>吃牌</span></div>
+          <div class="kbd-row"><kbd>H</kbd><span>胡牌</span></div>
+          <div class="kbd-row"><kbd>G</kbd><span>槓牌</span></div>
+          <div class="kbd-row"><kbd>T</kbd><span>聽牌分析</span></div>
+          <div class="kbd-row"><kbd>Space</kbd><span>過（放棄抢牌）</span></div>
+          <div class="kbd-row"><kbd>R</kbd><span>推薦打法</span></div>
+        </div>
+        <div class="kbd-section-title">選牌 &amp; 打牌</div>
+        <div class="kbd-grid">
+          <div class="kbd-row"><kbd>←</kbd><kbd>↑</kbd><span>向左選牌</span></div>
+          <div class="kbd-row"><kbd>→</kbd><kbd>↓</kbd><span>向右選牌</span></div>
+          <div class="kbd-row"><kbd>Enter</kbd><span>打出選中的牌</span></div>
+          <div class="kbd-row"><kbd>D</kbd><span>打出選中的牌</span></div>
+        </div>
+        <div class="kbd-section-title">通用</div>
+        <div class="kbd-grid">
+          <div class="kbd-row"><kbd>ESC</kbd><span>關閉最頂層彈窗</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 牌型總覽 -->
+  <div id="tile-ref-overlay" class="tile-ref-overlay" style="display:none">
+    <div class="tile-ref-panel">
+      <div class="tile-ref-header">
+        <span>牌型總覽</span>
+        <button id="btn-tile-ref-close" class="tenpai-close-btn">✕</button>
+      </div>
+      <div id="tile-ref-body" class="tile-ref-body"></div>
+    </div>
+  </div>
+
+  <!-- 胡牌規則 -->
+  <div id="yaku-rules-overlay" class="tile-ref-overlay" style="display:none">
+    <div class="tile-ref-panel yaku-rules-panel">
+      <div class="tile-ref-header">
+        <span>胡牌規則</span>
+        <button id="btn-yaku-rules-close" class="tenpai-close-btn">✕</button>
+      </div>
+      <div id="yaku-rules-body" class="tile-ref-body yaku-rules-body"></div>
+    </div>
+  </div>
+
+  <!-- 役種詳情 -->
+  <div id="yaku-info-popup" class="yaku-info-popup hidden">
+    <div class="yaku-info-box">
+      <button id="btn-yaku-info-close" class="yaku-info-close">✕</button>
+      <div id="yaku-info-name" class="yaku-info-name"></div>
+      <div id="yaku-info-desc" class="yaku-info-desc"></div>
+      <div id="yaku-info-tiles" class="yaku-info-tiles"></div>
+    </div>
+  </div>
+
+  <!-- 姓名輸入（首次啟動時強制填寫，儲存至 localStorage）-->
+  <div id="name-input-overlay" class="name-input-overlay hidden">
+    <div class="name-input-panel">
+      <div class="name-input-title">歡迎！</div>
+      <p class="name-input-subtitle">請輸入你的名字</p>
+      <input type="text" id="player-name-input" class="name-input-field"
+             placeholder="玩家" maxlength="12" autocomplete="off" />
+      <button id="btn-confirm-name" class="btn-start-game name-confirm-btn">確認</button>
+    </div>
+  </div>
+
+  <!-- 遊戲介面預覽 Modal（縮放展示完整牌桌，含所有玩家座位）-->
+  <div id="game-preview-modal" class="game-preview-modal hidden">
+    <div class="game-preview-backdrop"></div>
+    <div class="game-preview-inner">
+      <button id="btn-close-preview" class="game-preview-close">✕ 關閉</button>
+      <div class="game-preview-scale-wrap" id="game-preview-scale-wrap"></div>
+    </div>
+  </div>
+
+  <!-- 胡牌詳情 -->
+  <div id="win-detail-modal" class="win-detail-modal hidden">
+    <div class="win-detail-backdrop"></div>
+    <div class="win-detail-panel">
+      <div class="win-detail-toolbar">
+        <button id="btn-close-win-detail" class="win-history-close">✕ 關閉</button>
+      </div>
+      <div id="win-detail-body" class="win-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- 胡牌記錄 -->
+  <div id="win-history-modal" class="win-history-modal hidden">
+    <div class="win-history-backdrop"></div>
+    <div class="win-history-panel">
+      <div class="win-history-header">
+        <span class="win-history-title">📋 胡牌記錄</span>
+        <button id="btn-close-win-history" class="win-history-close">✕</button>
+      </div>
+      <div id="win-history-list" class="win-history-list"></div>
+    </div>
+  </div>
+
+  <!-- 竪屏旋轉提示（portrait 時自動顯示，landscape 時隱藏）-->
+  <div id="rotate-prompt">
+    <div class="rotate-phone-wrap">
+      <span class="rotate-phone-icon">📱</span>
+    </div>
+    <div class="rotate-title">請橫置手機</div>
+    <div class="rotate-sub">麻將遊戲橫屏效果更佳</div>
+  </div>
+
+  <!-- 先載入核心工具庫，再載入四人版遊戲邏輯（手機版共用 game.js）-->
+  <script src="mahjong-core.js"></script>
+  <script src="game.js"></script>
+
+  <script>
+  /* ── 橫屏強制：嘗試鎖定橫屏，同時監聽方向變化以顯示/隱藏提示 ── */
+  (function () {
+    function tryLockLandscape() {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        screen.orientation.lock('landscape').catch(function(){});
+      }
+    }
+    var prompt = document.getElementById('rotate-prompt');
+    function checkOrientation() {
+      var isPortrait = window.innerHeight > window.innerWidth;
+      if (prompt) prompt.style.display = isPortrait ? 'flex' : 'none';
+      if (isPortrait) tryLockLandscape();
+    }
+    tryLockLandscape();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', function(){ setTimeout(checkOrientation, 100); });
+    checkOrientation();
+  })();
+
+  /* ── 手牌自動捲到最右：每次手牌 DOM 更新後捲至末尾，確保摸牌可點 ── */
+  (function () {
+    var handEl = document.getElementById('player-hand');
+    if (!handEl) return;
+    function scrollToDrawn() {
+      // 下一幀再捲，等 DOM 完成佈局
+      requestAnimationFrame(function () {
+        handEl.scrollLeft = handEl.scrollWidth;
+      });
+    }
+    var obs = new MutationObserver(scrollToDrawn);
+    obs.observe(handEl, { childList: true });
+  })();
+  </script>
+</body>
+</html>

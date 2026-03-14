@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>🂡 21 點 Blackjack</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, #1a4a2e 0%, #0d2a1a 55%, #060f08 100%);
+      font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+      color: #f0e6c8;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* ── 背景裝飾 ── */
+    .bg-cards-deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-deco-card {
+      position: absolute; opacity: 0.04; font-size: 3rem;
+      animation: floatDeco 22s ease-in-out infinite;
+    }
+    .bg-deco-card:nth-child(1) { top: 5%;  left: 3%;  animation-delay: 0s; }
+    .bg-deco-card:nth-child(2) { top: 15%; left: 85%; animation-delay: 3s; }
+    .bg-deco-card:nth-child(3) { top: 50%; left: 5%;  animation-delay: 6s; }
+    .bg-deco-card:nth-child(4) { top: 70%; left: 80%; animation-delay: 2s; }
+    .bg-deco-card:nth-child(5) { top: 35%; left: 45%; animation-delay: 9s; }
+    .bg-deco-card:nth-child(6) { top: 85%; left: 25%; animation-delay: 5s; }
+    .bg-deco-card:nth-child(7) { top: 20%; left: 60%; animation-delay: 12s; }
+    .bg-deco-card:nth-child(8) { top: 90%; left: 60%; animation-delay: 7s; }
+    @keyframes floatDeco {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50%       { transform: translateY(-22px) rotate(4deg); }
+    }
+
+    /* ── 頁面主體 ── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+      display: flex; flex-direction: column; gap: 1.2rem;
+    }
+
+    /* ── 頂部導覽 ── */
+    .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+    .back-btn {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+      color: #ccc; font-size: 0.82rem; padding: 0.45em 0.9em; border-radius: 8px;
+      cursor: pointer; text-decoration: none; transition: background 0.15s, color 0.15s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+    .game-title {
+      font-size: clamp(1.2rem, 4vw, 1.6rem); font-weight: 900; letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #a8ff78 0%, #78ffa8 50%, #a8ff78 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .balance-badge {
+      display: flex; align-items: center; gap: 0.35rem;
+      background: rgba(246,183,34,0.12); border: 1px solid rgba(246,183,34,0.28);
+      border-radius: 999px; padding: 0.3em 0.8em;
+      font-size: 0.82rem; font-weight: 700; color: #f6c847;
+    }
+
+    /* ── 統計 ── */
+    .stats-row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+    .stat-item {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 10px; padding: 0.5rem 0.9rem; text-align: center; flex: 1; min-width: 70px;
+    }
+    .stat-val { font-size: 1rem; font-weight: 800; color: #f0dfa0; }
+    .stat-lbl { font-size: 0.65rem; color: #7aa8a5; letter-spacing: 0.07em; margin-top: 2px; }
+
+    /* ── 歷史紀錄 ── */
+    .history-row { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; min-height: 26px; }
+    .hist-chip { font-size: 0.72rem; font-weight: 700; padding: 0.2em 0.6em; border-radius: 999px; }
+    .hist-win  { background: rgba(34,197,94,0.18);  color: #4ade80; }
+    .hist-lose { background: rgba(239,68,68,0.18);  color: #f87171; }
+    .hist-push { background: rgba(255,255,255,0.1); color: #94a3b8; }
+    .hist-bj   { background: rgba(251,191,36,0.2);  color: #fbbf24; }
+
+    /* ── 投注區 ── */
+    .bet-section {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 1rem 1.2rem;
+      display: flex; flex-direction: column; gap: 0.9rem;
+    }
+    .bet-label { font-size: 0.78rem; color: #7aa8a5; letter-spacing: 0.1em; text-transform: uppercase; }
+    .bet-chips { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
+    .chip {
+      width: 52px; height: 52px; border-radius: 50%; border: 3px solid;
+      font-size: 0.72rem; font-weight: 800; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+      transition: transform 0.15s, box-shadow 0.15s; position: relative; overflow: hidden;
+    }
+    .chip:hover { transform: scale(1.12); box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .chip:active { transform: scale(1.04); }
+    .chip-1   { background: radial-gradient(circle, #e8e8e8, #b0b0b0); border-color: #888; color: #333; }
+    .chip-5   { background: radial-gradient(circle, #ff6b6b, #cc2222); border-color: #ff9999; color: #fff; }
+    .chip-10  { background: radial-gradient(circle, #4ecdc4, #1a8a80); border-color: #80e0d8; color: #fff; }
+    .chip-50  { background: radial-gradient(circle, #ffe066, #cc9900); border-color: #ffd700; color: #553300; }
+    .chip-100 { background: radial-gradient(circle, #a78bfa, #6d28d9); border-color: #c4b5fd; color: #fff; }
+    .chip-500 { background: radial-gradient(circle, #f97316, #c2410c); border-color: #fdba74; color: #fff; }
+    .chip-val { font-size: 0.9rem; font-weight: 900; line-height: 1; }
+
+    .bet-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .bet-display {
+      flex: 1; min-width: 100px;
+      font-size: 1.1rem; font-weight: 800; color: #ffe066;
+      background: rgba(0,0,0,0.25); border-radius: 8px;
+      padding: 0.4em 0.75em; text-align: center;
+    }
+    .bet-action-btn {
+      padding: 0.45em 0.85em; border-radius: 8px; font-size: 0.8rem; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.08);
+      color: #ccc; cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .bet-action-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    .bet-action-btn:disabled { opacity: 0.35; cursor: default; }
+    .btn-deal {
+      padding: 0.55em 1.5em; border-radius: 10px;
+      font-size: 1rem; font-weight: 800; letter-spacing: 0.05em;
+      border: none; background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; cursor: pointer; box-shadow: 0 4px 16px rgba(34,197,94,0.35);
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+    .btn-deal:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(34,197,94,0.5); }
+    .btn-deal:disabled { opacity: 0.38; cursor: default; transform: none; box-shadow: none; }
+
+    /* ── 人機管理區 ── */
+    .ai-section {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 0.8rem;
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .ai-section-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    }
+    .ai-section-label {
+      font-size: 0.78rem; color: #7aa8a5;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .ai-section-label span { color: rgba(255,255,255,0.25); font-weight: 400; }
+    .btn-add-ai {
+      padding: 0.38em 0.9em; border-radius: 8px; font-size: 0.8rem; font-weight: 700;
+      border: 1px dashed rgba(34,197,94,0.45); background: rgba(34,197,94,0.08);
+      color: #4ade80; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-add-ai:hover { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.7); }
+    .btn-add-ai:disabled { opacity: 0.3; cursor: default; }
+
+    .ai-slots { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .ai-slot {
+      display: flex; align-items: center; gap: 0.45rem;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 0.4em 0.5em 0.4em 0.7em;
+      font-size: 0.82rem; animation: slotIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slotIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .ai-slot-emoji { font-size: 1.15rem; line-height: 1; }
+    .ai-slot-name  { font-weight: 700; color: #e0d8c8; }
+    .ai-slot-strategy { font-size: 0.68rem; color: #7aa8a5; }
+    .ai-remove {
+      background: none; border: none; color: rgba(255,255,255,0.3);
+      font-size: 0.9rem; cursor: pointer; padding: 0 2px; line-height: 1;
+      transition: color 0.15s; border-radius: 4px;
+    }
+    .ai-remove:hover { color: #f87171; background: rgba(239,68,68,0.12); }
+
+    /* ── 牌桌 ── */
+    .table-area {
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 1.2rem 1rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    /* ── 手牌行 ── */
+    .hand-row {
+      display: flex; flex-direction: column; gap: 0.55rem;
+      border-radius: 12px; padding: 0.7rem 0.8rem;
+      border: 1.5px solid transparent;
+      transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+    }
+    .hand-row.hand-player {
+      background: rgba(34,197,94,0.05);
+      border-color: rgba(34,197,94,0.15);
+    }
+    .hand-row.hand-ai {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.07);
+    }
+    .hand-row.hand-dealer {
+      background: rgba(245,158,11,0.04);
+      border-color: rgba(245,158,11,0.12);
+    }
+    .hand-row.active-turn {
+      border-color: rgba(255,220,60,0.55) !important;
+      box-shadow: 0 0 0 2px rgba(255,220,60,0.15), 0 4px 20px rgba(255,220,60,0.1);
+    }
+    .hand-row.active-turn.hand-player {
+      background: rgba(34,197,94,0.1);
+    }
+    .hand-row.active-turn.hand-ai {
+      background: rgba(99,102,241,0.08);
+    }
+
+    .hand-label {
+      font-size: 0.76rem; color: #7aa8a5; letter-spacing: 0.1em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .hand-label .player-icon { font-size: 1rem; }
+    .turn-indicator {
+      font-size: 0.68rem; font-weight: 700;
+      background: rgba(255,220,60,0.2); color: #fde68a;
+      border: 1px solid rgba(255,220,60,0.35);
+      padding: 0.15em 0.55em; border-radius: 999px;
+      animation: pulse-badge 1s ease-in-out infinite;
+    }
+    @keyframes pulse-badge {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.6; }
+    }
+
+    .hand-score {
+      font-size: 0.88rem; font-weight: 800;
+      padding: 0.15em 0.6em; border-radius: 6px;
+      background: rgba(255,255,255,0.1); color: #f0dfa0;
+    }
+    .hand-score.bust      { background: rgba(239,68,68,0.25);  color: #f87171; }
+    .hand-score.blackjack { background: rgba(251,191,36,0.3);  color: #fbbf24; }
+    .hand-score.win       { background: rgba(34,197,94,0.25);  color: #4ade80; }
+    .hand-score.lose      { background: rgba(239,68,68,0.25);  color: #f87171; }
+    .hand-score.push      { background: rgba(255,255,255,0.12);color: #d0d0d0; }
+
+    .cards-row {
+      display: flex; flex-wrap: wrap; gap: 0.45rem;
+      min-height: 80px; align-items: flex-end;
+    }
+
+    /* ── 牌 ── */
+    .card {
+      width: 54px; height: 82px; border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: 900;
+      position: relative; flex-shrink: 0;
+      animation: dealIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    @keyframes dealIn {
+      from { transform: translateY(-40px) scale(0.7) rotate(-15deg); opacity: 0; }
+      to   { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    .card-face { background: #fff; color: inherit; border: 2px solid rgba(0,0,0,0.12); }
+    .card-red   { color: #e02020; }
+    .card-black { color: #111; }
+    .card-suit-rank { display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1; }
+    .card-rank { font-size: 0.95rem; font-weight: 900; line-height: 1.1; }
+    .card-suit { font-size: 1.1rem;  line-height: 1.1; }
+    .card-back {
+      background: linear-gradient(135deg, #1a5c48 0%, #0d3260 100%);
+      border: 2px solid rgba(255,255,255,0.15); color: #3a8a6a;
+    }
+    .card-back::after { content: '🂠'; font-size: 2rem; position: absolute; opacity: 0.7; }
+
+    .table-divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 0.1rem 0; }
+
+    /* ── 操作按鈕 ── */
+    .action-bar { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; padding-top: 0.3rem; }
+    .action-btn {
+      padding: 0.65em 1.4em; border-radius: 10px;
+      font-size: 0.92rem; font-weight: 800; letter-spacing: 0.04em;
+      border: 2px solid; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      min-width: 88px;
+    }
+    .action-btn:hover  { transform: translateY(-2px); }
+    .action-btn:active { transform: translateY(0); }
+    .action-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+    .btn-hit    { background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-color: #60a5fa; color: #fff; box-shadow: 0 4px 14px rgba(59,130,246,0.35); }
+    .btn-hit:not(:disabled):hover    { box-shadow: 0 6px 20px rgba(59,130,246,0.5); }
+    .btn-stand  { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #f87171; color: #fff; box-shadow: 0 4px 14px rgba(239,68,68,0.35); }
+    .btn-stand:not(:disabled):hover  { box-shadow: 0 6px 20px rgba(239,68,68,0.5); }
+    .btn-double { background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #fcd34d; color: #fff; box-shadow: 0 4px 14px rgba(245,158,11,0.35); }
+    .btn-double:not(:disabled):hover { box-shadow: 0 6px 20px rgba(245,158,11,0.5); }
+    .btn-insurance { background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-color: #c4b5fd; color: #fff; box-shadow: 0 4px 14px rgba(139,92,246,0.35); }
+    .btn-insurance:not(:disabled):hover { box-shadow: 0 6px 20px rgba(139,92,246,0.5); }
+
+    /* ── 保險提示 ── */
+    .insurance-bar {
+      display: none;
+      background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 10px; padding: 0.7rem 1rem;
+      font-size: 0.85rem; color: #c4b5fd;
+      align-items: center; justify-content: space-between; gap: 0.6rem;
+    }
+    .insurance-bar.show { display: flex; }
+
+    /* ── 結果彈窗 ── */
+    .result-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .result-overlay.hidden { display: none; }
+    .result-panel {
+      background: rgba(8,22,14,0.97); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; padding: 1.6rem 1.8rem;
+      text-align: center; max-width: 380px; width: 92vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+      animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .result-icon  { font-size: 3rem;  line-height: 1; margin-bottom: 0.4rem; }
+    .result-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.2rem; }
+    .result-title.win  { color: #4ade80; }
+    .result-title.lose { color: #f87171; }
+    .result-title.push { color: #94a3b8; }
+    .result-title.bj   { color: #fbbf24; }
+
+    /* ── 結果總表 ── */
+    .result-table {
+      width: 100%; border-collapse: collapse; margin: 0.8rem 0;
+      font-size: 0.82rem;
+    }
+    .result-table th {
+      font-size: 0.68rem; color: #7aa8a5; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 0.3em 0.5em;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .result-table td {
+      padding: 0.42em 0.5em; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .result-table tr:last-child td { border-bottom: none; }
+    .rt-name { display: flex; align-items: center; gap: 0.4rem; text-align: left; }
+    .rt-name .ri { font-size: 1rem; }
+    .rt-name .rn { font-weight: 700; color: #e0d8c8; }
+    .rt-pts  { font-weight: 800; color: #f0dfa0; text-align: center; }
+    .rt-res  { font-weight: 800; text-align: center; }
+    .rt-res.win  { color: #4ade80; }
+    .rt-res.bj   { color: #fbbf24; }
+    .rt-res.lose { color: #f87171; }
+    .rt-res.push { color: #94a3b8; }
+    .rt-res.bust { color: #f87171; }
+
+    .dealer-result-row {
+      background: rgba(245,158,11,0.08);
+      border-radius: 8px; padding: 0.5rem 0.8rem;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.85rem; margin-bottom: 0.7rem;
+    }
+    .dealer-result-lbl { color: #9ca3af; }
+    .dealer-result-val { font-weight: 800; color: #fcd34d; font-size: 1rem; }
+    .dealer-result-val.bust { color: #f87171; }
+
+    .result-payout {
+      font-size: 1.1rem; font-weight: 800;
+      padding: 0.4em 1em; border-radius: 10px;
+      margin-bottom: 1rem; display: inline-block;
+    }
+    .result-payout.positive { background: rgba(34,197,94,0.18);  color: #4ade80; }
+    .result-payout.negative { background: rgba(239,68,68,0.18);  color: #f87171; }
+    .result-payout.neutral  { background: rgba(255,255,255,0.08);color: #ccc; }
+
+    .btn-next {
+      padding: 0.65em 2em; border-radius: 10px; font-size: 1rem; font-weight: 800;
+      border: none; background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; cursor: pointer; box-shadow: 0 4px 16px rgba(34,197,94,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(34,197,94,0.5); }
+
+    /* ── 規則說明 ── */
+    .rules-section {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 0.9rem 1.1rem;
+    }
+    .rules-title {
+      font-size: 0.76rem; font-weight: 700; color: #7aa8a5;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.6rem;
+    }
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; }
+    .rule-item {
+      font-size: 0.75rem; color: #88a8a5; line-height: 1.5;
+      display: flex; align-items: flex-start; gap: 0.35rem;
+    }
+    .rule-dot { color: #4ade80; flex-shrink: 0; margin-top: 0.1em; }
+
+    @media (max-width: 400px) {
+      .rules-grid { grid-template-columns: 1fr; }
+      .chip { width: 46px; height: 46px; }
+    }
+
+    /* ── 歡迎屏 ── */
+    #welcome-screen {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 30% 0%, #1a4a2e 0%, #0a2a18 60%, #040f08 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    /* ── 欢迎屏玩家資料（左上角）── 統一斗地主風格 */
+    .ws-profile {
+      position: absolute; top: 24px; left: 24px;
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 12px 18px 12px 12px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 6px 24px rgba(0,0,0,.5);
+      z-index: 10;
+    }
+    .ws-avatar-btn {
+      position: relative; width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2c6b2f, #1a3a5c);
+      border: 2px solid #f6c847;
+      box-shadow: 0 0 0 3px rgba(246,200,71,.18), 0 3px 12px rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      font-size: 1.6rem; line-height: 1;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .ws-avatar-btn:hover {
+      border-color: #ffe066;
+      box-shadow: 0 0 0 4px rgba(246,200,71,.3), 0 3px 14px rgba(0,0,0,.6);
+    }
+    .ws-avatar-badge {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #f6c847; color: #3b2600;
+      font-size: 0.58rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid #1a1a1a;
+    }
+    .ws-name-wrap {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ws-name { font-size: 1rem; font-weight: 800; color: #f0dfa0; white-space: nowrap; }
+    .ws-rename-btn {
+      background: none; border: none; color: #888;
+      font-size: 0.78rem; cursor: pointer;
+      padding: 2px 6px; border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    .ws-rename-btn:hover { color: #f6c847; background: rgba(246,200,71,.1); }
+    .ws-balance-info {
+      display: flex; flex-direction: column; align-items: flex-end;
+      border-left: 1px solid rgba(255,255,255,0.12);
+      padding-left: 12px;
+    }
+    .ws-balance-label { font-size: 0.65rem; color: #7aa8a5; }
+    .ws-balance-val { font-size: 0.9rem; font-weight: 800; color: #f6c847; }
+    .ws-balance-val.overdraft { color: #e74c3c; }
+    /* 頭像選擇器 */
+    .ws-ap-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.68);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 300; backdrop-filter: blur(4px);
+    }
+    .ws-ap-overlay.hidden { display: none; }
+    .ws-ap-panel {
+      background: rgba(8,18,12,0.97);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px; padding: 22px;
+      text-align: center; max-width: 300px; width: 88vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.75);
+    }
+    .ws-ap-title { font-size: 0.9rem; font-weight: 700; color: #f6c847; margin-bottom: 14px; }
+    .ws-ap-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+    .ws-ap-opt {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 8px; font-size: 1.45rem;
+      cursor: pointer; transition: background .15s, border-color .15s, transform .1s;
+    }
+    .ws-ap-opt:hover { background: rgba(255,255,255,0.15); border-color: rgba(246,200,71,0.5); transform: scale(1.08); }
+    .ws-ap-opt.selected { background: rgba(246,200,71,0.18); border-color: #f6c847; }
+    .ws-ap-close {
+      padding: 6px 22px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08); color: #ccc;
+      font-size: 0.84rem; cursor: pointer; transition: background .15s;
+    }
+    .ws-ap-close:hover { background: rgba(255,255,255,0.16); }
+    .welcome-panel {
+      text-align: center; padding: 40px 50px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px; border: 1px solid rgba(246,200,71,.3);
+      max-width: 420px; width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .welcome-title {
+      font-size: 2.8rem; font-weight: 900;
+      color: #f6c847; text-shadow: 0 2px 12px rgba(246,200,71,.6);
+      margin-bottom: 8px;
+    }
+    .welcome-subtitle { font-size: 0.9rem; color: #aaa; margin-bottom: 28px; }
+    .welcome-rules {
+      background: rgba(255,255,255,.06); border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 24px; text-align: left;
+    }
+    .welcome-rules h3 { font-size: 0.85rem; color: #f6c847; margin-bottom: 10px; }
+    .welcome-rules ul { list-style: none; }
+    .welcome-rules li { font-size: 0.8rem; color: #ccc; padding: 3px 0; }
+    .welcome-rules li::before { content: '• '; color: #f6c847; }
+    .btn-start {
+      display: block; width: 100%;
+      padding: 14px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff; font-size: 1.15rem; font-weight: 900;
+      cursor: pointer; letter-spacing: .05em;
+      box-shadow: 0 6px 20px rgba(231,76,60,.5);
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-start:hover { box-shadow: 0 8px 28px rgba(231,76,60,.7); }
+    .btn-start:active { transform: scale(0.97); }
+    .welcome-action-row { display: flex; gap: 10px; align-items: stretch; }
+    .welcome-action-row .btn-start { flex: 1; }
+    .btn-tutorial {
+      padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(246,200,71,.35);
+      background: rgba(246,200,71,.1); color: #f6c847;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, box-shadow .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-tutorial:hover { background: rgba(246,200,71,.2); box-shadow: 0 4px 14px rgba(246,200,71,.2); }
+    .btn-tutorial:active { transform: scale(0.97); }
+    /* ── 教學 overlay ── */
+    #tutorial-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.78);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 400; backdrop-filter: blur(6px);
+    }
+    #tutorial-overlay.hidden { display: none; }
+    .tutorial-panel {
+      background: linear-gradient(160deg, #0d1e10 0%, #061008 100%);
+      border: 1px solid rgba(246,200,71,.25); border-radius: 18px;
+      width: min(680px, 94vw); max-height: 88vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.8); overflow: hidden;
+    }
+    .tutorial-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px 0; flex-shrink: 0;
+    }
+    .tutorial-title { font-size: 1.1rem; font-weight: 900; color: #f6c847; letter-spacing: .06em; }
+    .tutorial-close {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: #ccc; font-size: 1rem; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .tutorial-close:hover { background: rgba(255,255,255,.18); color: #fff; }
+    .tutorial-tabs {
+      display: flex; gap: 4px; padding: 14px 22px 0; flex-shrink: 0;
+    }
+    .tutorial-tab {
+      padding: 6px 14px; border-radius: 8px 8px 0 0;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-bottom: none;
+      color: #aaa; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .tutorial-tab.active { background: rgba(246,200,71,.15); border-color: rgba(246,200,71,.3); color: #f6c847; }
+    .tutorial-body {
+      flex: 1; overflow-y: auto; padding: 18px 22px 22px;
+      border-top: 1px solid rgba(246,200,71,.15);
+    }
+    .tutorial-section { display: none; }
+    .tutorial-section.active { display: block; }
+    .tut-h { font-size: .85rem; font-weight: 800; color: #f6c847; margin: 14px 0 6px; }
+    .tut-h:first-child { margin-top: 0; }
+    .tut-p { font-size: .82rem; color: #c8c8c8; line-height: 1.65; margin-bottom: 6px; }
+    .tut-steps { counter-reset: step; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .tut-steps li {
+      counter-increment: step; display: flex; align-items: flex-start; gap: 10px;
+      font-size: .82rem; color: #c8c8c8; line-height: 1.55;
+    }
+    .tut-steps li::before {
+      content: counter(step); flex-shrink: 0; width: 22px; height: 22px;
+      background: rgba(246,200,71,.2); border: 1px solid rgba(246,200,71,.4);
+      border-radius: 50%; color: #f6c847; font-size: .72rem; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tut-hand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 8px; }
+    .tut-hand-card {
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .tut-hand-name { font-size: .8rem; font-weight: 800; color: #f6c847; margin-bottom: 4px; }
+    .tut-hand-example { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px; }
+    .tc {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 38px; background: #fff; border-radius: 4px;
+      border: 1px solid #bbb; font-size: .65rem; font-weight: 800; color: #222;
+      box-shadow: 0 1px 4px rgba(0,0,0,.35); flex-shrink: 0; line-height: 1;
+    }
+    .tc.red { color: #c0392b; }
+    .tut-hand-desc { font-size: .75rem; color: #999; line-height: 1.5; }
+    .tut-score-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .tut-score-table th, .tut-score-table td {
+      padding: 7px 10px; text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,.07); font-size: .8rem;
+    }
+    .tut-score-table th { color: #f6c847; font-weight: 700; }
+    .tut-score-table td { color: #c8c8c8; }
+    .tut-score-table tr:last-child td { border-bottom: none; }
+    .tut-tip {
+      background: rgba(246,200,71,.08); border-left: 3px solid #f6c847;
+      border-radius: 0 8px 8px 0; padding: 8px 12px; margin-top: 10px;
+      font-size: .8rem; color: #e8dfc0; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 頭像選擇器 overlay -->
+<div id="ws-ap-overlay" class="ws-ap-overlay hidden">
+  <div class="ws-ap-panel">
+    <div class="ws-ap-title">選擇頭像</div>
+    <div class="ws-ap-grid">
+      <button class="ws-ap-opt" data-avatar="🀄">🀄</button>
+      <button class="ws-ap-opt" data-avatar="🎴">🎴</button>
+      <button class="ws-ap-opt" data-avatar="🃏">🃏</button>
+      <button class="ws-ap-opt" data-avatar="🎰">🎰</button>
+      <button class="ws-ap-opt" data-avatar="🦁">🦁</button>
+      <button class="ws-ap-opt" data-avatar="🐯">🐯</button>
+      <button class="ws-ap-opt" data-avatar="🐉">🐉</button>
+      <button class="ws-ap-opt" data-avatar="🦊">🦊</button>
+      <button class="ws-ap-opt" data-avatar="🐼">🐼</button>
+      <button class="ws-ap-opt" data-avatar="👑">👑</button>
+      <button class="ws-ap-opt" data-avatar="⭐">⭐</button>
+      <button class="ws-ap-opt" data-avatar="🎭">🎭</button>
+    </div>
+    <button class="ws-ap-close" id="ws-ap-close">關閉</button>
+  </div>
+</div>
+
+<!-- ══ 歡迎屏 ══ -->
+<div id="welcome-screen">
+  <!-- 玩家資料（左上角）-->
+  <div class="ws-profile">
+    <div class="ws-avatar-btn" id="ws-btn-avatar" title="更換頭像">
+      <span id="ws-avatar">🀄</span>
+      <span class="ws-avatar-badge">✎</span>
+    </div>
+    <div class="ws-name-wrap">
+      <span class="ws-name" id="ws-profile-name">玩家</span>
+      <button class="ws-rename-btn" id="ws-btn-rename">✎ 改名</button>
+    </div>
+    <div class="ws-balance-info">
+      <span class="ws-balance-label">餘額</span>
+      <span class="ws-balance-val" id="ws-profile-balance">10,000</span>
+    </div>
+  </div>
+
+  <div class="welcome-panel">
+    <div class="welcome-title">🂡 21 點</div>
+    <div class="welcome-subtitle">Blackjack 單機版 — 玩家 vs 莊家 &amp; AI</div>
+    <div class="welcome-rules">
+      <h3>📜 簡要規則</h3>
+      <ul>
+        <li>盡量讓手牌點數靠近 21，超過即爆牌</li>
+        <li>A 可算 1 或 11，花牌（J/Q/K）算 10</li>
+        <li>開局即拿到 21（Blackjack）賠 1.5 倍</li>
+        <li>可加倍（Double Down）或買保險（Insurance）</li>
+        <li>莊家必須在 16 點以下補牌，17 點以上停牌</li>
+      </ul>
+    </div>
+    <div class="welcome-action-row">
+      <button class="btn-start" id="btn-start-game">開始遊戲</button>
+      <button class="btn-tutorial" id="btn-open-tutorial">📖 教學</button>
+    </div>
+    <div style="margin-top:12px;">
+      <a href="index.html" style="color:#888;font-size:.8rem;text-decoration:none;">← 返回遊戲大廳</a>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 遊戲教學 overlay ════ -->
+<div id="tutorial-overlay" class="hidden">
+  <div class="tutorial-panel">
+    <div class="tutorial-header">
+      <span class="tutorial-title">📖 21點 遊戲教學</span>
+      <button class="tutorial-close" id="tutorial-close">✕</button>
+    </div>
+    <div class="tutorial-tabs">
+      <button class="tutorial-tab active" data-tab="rules">基本規則</button>
+      <button class="tutorial-tab" data-tab="actions">操作說明</button>
+      <button class="tutorial-tab" data-tab="payout">賠率說明</button>
+    </div>
+    <div class="tutorial-body">
+
+      <div class="tutorial-section active" id="tut-rules">
+        <div class="tut-h">🃏 遊戲概述</div>
+        <p class="tut-p">21點（Blackjack）是玩家對抗莊家的牌類遊戲，目標是讓手牌點數盡量靠近 21，且不能超過 21（爆牌）。同時，點數必須高於莊家才能獲勝。</p>
+
+        <div class="tut-h">📐 牌面點數</div>
+        <div class="tut-hand-grid">
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">數字牌 2–10</div>
+            <div class="tut-hand-example"><span class="tc red">5♦</span><span class="tc">7♣</span></div>
+            <div class="tut-hand-desc">按面值計算（2=2、10=10）。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">花牌 J / Q / K</div>
+            <div class="tut-hand-example"><span class="tc">J♠</span><span class="tc red">Q♥</span><span class="tc">K♣</span></div>
+            <div class="tut-hand-desc">均算 <strong style="color:#f6c847">10 點</strong>。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">A（Ace）</div>
+            <div class="tut-hand-example"><span class="tc red">A♥</span></div>
+            <div class="tut-hand-desc">可算 <strong style="color:#f6c847">1 或 11</strong>，以對自己有利的值計算；若算 11 會爆牌則自動改為 1。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">Blackjack（天牌）</div>
+            <div class="tut-hand-example"><span class="tc red">A♦</span><span class="tc">K♠</span></div>
+            <div class="tut-hand-desc">開局即發出 A + 10點牌，視為 Blackjack，直接贏且賠率更高！</div>
+          </div>
+        </div>
+
+        <div class="tut-h">📋 遊戲流程</div>
+        <ol class="tut-steps">
+          <li>下注，點擊籌碼選擇下注金額，按「發牌」開始。</li>
+          <li>玩家與莊家各發兩張牌；莊家一張明牌、一張暗牌。</li>
+          <li>玩家依序選擇：補牌（Hit）、停牌（Stand）、加倍（Double）。</li>
+          <li>玩家完成後，莊家翻開暗牌，並在 16 點以下強制補牌、17 點以上停牌。</li>
+          <li>比較點數：點數高且未超過 21 者勝；同點為和（退還下注）。</li>
+        </ol>
+        <div class="tut-tip">💡 爆牌（超過21點）立即判負，無需等莊家出牌。</div>
+      </div>
+
+      <div class="tutorial-section" id="tut-actions">
+        <div class="tut-h">🖱️ 操作選項</div>
+        <div class="tut-hand-grid">
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">補牌（Hit）</div>
+            <div class="tut-hand-desc">再抽一張牌。可以多次補牌，但超過 21 即爆牌輸掉本局。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">停牌（Stand）</div>
+            <div class="tut-hand-desc">不再補牌，以目前點數與莊家比較。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">加倍（Double Down）</div>
+            <div class="tut-hand-desc">僅限首兩張牌時使用：下注翻倍，只再補一張牌後自動停牌。</div>
+          </div>
+          <div class="tut-hand-card">
+            <div class="tut-hand-name">保險（Insurance）</div>
+            <div class="tut-hand-desc">莊家明牌為 A 時可購買。若莊家為 Blackjack，保險賠 2:1；否則保險金輸掉。</div>
+          </div>
+        </div>
+        <div class="tut-tip">💡 建議策略：莊家明牌 2–6 時停牌（莊家容易爆）；莊家 7–A 且自己低於 17 時補牌。</div>
+      </div>
+
+      <div class="tutorial-section" id="tut-payout">
+        <div class="tut-h">💰 賠率表</div>
+        <table class="tut-score-table">
+          <thead><tr><th>結果</th><th>賠率</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>玩家勝（普通）</td><td>1 : 1</td><td>贏得與下注等額的金幣</td></tr>
+            <tr><td>Blackjack 勝</td><td>3 : 2</td><td>開局天牌，賠 1.5 倍下注</td></tr>
+            <tr><td>和局（Push）</td><td>退還</td><td>點數相同，退回下注金額</td></tr>
+            <tr><td>玩家輸</td><td>−1 : 1</td><td>失去下注金額</td></tr>
+            <tr><td>保險賠付</td><td>2 : 1</td><td>莊家 Blackjack 時，保險金額的 2 倍</td></tr>
+            <tr><td>加倍勝</td><td>2 : 1</td><td>下注翻倍後勝出，贏回雙倍</td></tr>
+          </tbody>
+        </table>
+        <div class="tut-tip">💡 長期最佳策略是基本策略（Basic Strategy），可將莊家優勢降至約 0.5%。</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="bg-cards-deco">
+  <span class="bg-deco-card">🂡</span><span class="bg-deco-card">🂮</span>
+  <span class="bg-deco-card">🃁</span><span class="bg-deco-card">🃍</span>
+  <span class="bg-deco-card">🂻</span><span class="bg-deco-card">🃞</span>
+  <span class="bg-deco-card">🂱</span><span class="bg-deco-card">🃎</span>
+</div>
+
+<div class="page">
+
+  <!-- 頂部導覽 -->
+  <div class="top-bar">
+    <a class="back-btn" href="index.html">‹ 大廳</a>
+    <div class="game-title">🂡 21 點</div>
+    <div class="balance-badge">💰 <span id="balance-display">10,000</span></div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-val" id="stat-win">0</div><div class="stat-lbl">勝</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-lose">0</div><div class="stat-lbl">負</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-push">0</div><div class="stat-lbl">平</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-bj">0</div><div class="stat-lbl">Blackjack</div></div>
+  </div>
+
+  <!-- 歷史 -->
+  <div class="history-row" id="history-row"></div>
+
+  <!-- 投注區 -->
+  <div class="bet-section">
+    <div class="bet-label">選擇籌碼 · 點擊下注</div>
+    <div class="bet-chips">
+      <div class="chip chip-1"   data-val="1">  <span class="chip-val">1</span></div>
+      <div class="chip chip-5"   data-val="5">  <span class="chip-val">5</span></div>
+      <div class="chip chip-10"  data-val="10"> <span class="chip-val">10</span></div>
+      <div class="chip chip-50"  data-val="50"> <span class="chip-val">50</span></div>
+      <div class="chip chip-100" data-val="100"><span class="chip-val">100</span></div>
+      <div class="chip chip-500" data-val="500"><span class="chip-val">500</span></div>
+    </div>
+    <div class="bet-actions">
+      <div class="bet-display">注：<span id="bet-display">0</span></div>
+      <button class="bet-action-btn" id="btn-clear-bet">清除</button>
+      <button class="bet-action-btn" id="btn-repeat-bet">重複上注</button>
+      <button class="btn-deal" id="btn-deal">發牌</button>
+    </div>
+
+    <!-- 人機管理 -->
+    <div class="ai-section">
+      <div class="ai-section-header">
+        <div class="ai-section-label">人機玩家 <span id="ai-count-label">（0 / 3）</span></div>
+        <button class="btn-add-ai" id="btn-add-ai">＋ 添加人機</button>
+      </div>
+      <div class="ai-slots" id="ai-slots"></div>
+    </div>
+  </div>
+
+  <!-- 保險提示 -->
+  <div class="insurance-bar" id="insurance-bar">
+    <span>莊家亮 A！是否購買保險？（花費 <span id="insurance-cost">0</span>）</span>
+    <div style="display:flex;gap:0.5rem;">
+      <button class="action-btn btn-insurance" id="btn-ins-yes" style="min-width:60px;padding:0.4em 0.9em;font-size:0.82rem;">買</button>
+      <button class="bet-action-btn" id="btn-ins-no">不買</button>
+    </div>
+  </div>
+
+  <!-- 牌桌 -->
+  <div class="table-area" id="table-area">
+    <!-- 莊家 -->
+    <div class="hand-row hand-dealer" id="row-dealer">
+      <div class="hand-label">
+        <span class="player-icon">🏦</span> 莊家
+        <span class="hand-score" id="dealer-score">-</span>
+      </div>
+      <div class="cards-row" id="dealer-cards"></div>
+    </div>
+
+    <hr class="table-divider">
+
+    <!-- 玩家 & AI 手牌容器（動態） -->
+    <div id="players-area" style="display:flex;flex-direction:column;gap:0.7rem;"></div>
+
+    <!-- 操作按鈕 -->
+    <div class="action-bar" id="action-bar">
+      <button class="action-btn btn-hit"    id="btn-hit"    disabled>補牌</button>
+      <button class="action-btn btn-stand"  id="btn-stand"  disabled>停牌</button>
+      <button class="action-btn btn-double" id="btn-double" disabled>加倍</button>
+    </div>
+  </div>
+
+  <!-- 規則說明 -->
+  <div class="rules-section">
+    <div class="rules-title">遊戲規則</div>
+    <div class="rules-grid">
+      <div class="rule-item"><span class="rule-dot">●</span>目標：點數比莊家靠近 21 但不超過</div>
+      <div class="rule-item"><span class="rule-dot">●</span>A = 1 或 11，J/Q/K = 10</div>
+      <div class="rule-item"><span class="rule-dot">●</span>Blackjack（前兩張 21）賠率 3:2</div>
+      <div class="rule-item"><span class="rule-dot">●</span>加倍：再拿一張，注碼翻倍</div>
+      <div class="rule-item"><span class="rule-dot">●</span>莊家 ≤ 16 補牌，≥ 17 停牌</div>
+      <div class="rule-item"><span class="rule-dot">●</span>保險：莊家亮 A 時可押注（賠 2:1）</div>
+      <div class="rule-item"><span class="rule-dot">●</span>超過 21 點爆牌自動輸</div>
+      <div class="rule-item"><span class="rule-dot">●</span>人機不影響玩家餘額</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 結果彈窗 -->
+<div class="result-overlay hidden" id="result-overlay">
+  <div class="result-panel">
+    <div class="result-icon"  id="result-icon">🎉</div>
+    <div class="result-title" id="result-title">勝利！</div>
+
+    <!-- 莊家結果行 -->
+    <div class="dealer-result-row">
+      <span class="dealer-result-lbl">🏦 莊家</span>
+      <span class="dealer-result-val" id="res-dealer-val">17</span>
+    </div>
+
+    <!-- 各玩家總表 -->
+    <table class="result-table" id="result-table">
+      <thead>
+        <tr>
+          <th style="text-align:left">玩家</th>
+          <th>點數</th>
+          <th>結果</th>
+        </tr>
+      </thead>
+      <tbody id="result-tbody"></tbody>
+    </table>
+
+    <div class="result-payout" id="result-payout">+200</div>
+    <button class="btn-next" id="btn-next">下一局</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── 常數 ── */
+  const SUITS     = ['♠','♥','♦','♣'];
+  const RANKS     = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const RANK_VALS = { A:11,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:10,Q:10,K:10 };
+  const RED_SUITS = new Set(['♥','♦']);
+  const BAL_KEY   = 'mj-player-balance';
+  const DEFAULT_BAL = 10000;
+  const MAX_AI    = 3;
+
+  /* 人機配置 */
+  const AI_PRESETS = [
+    { id: 'ai0', name: '人机1', emoji: '🤖', standAt: 17 },
+    { id: 'ai1', name: '人机2', emoji: '🦊', standAt: 16 },
+    { id: 'ai2', name: '人机3', emoji: '🐯', standAt: 18 },
+  ];
+
+  /* ── 狀態 ── */
+  let balance      = parseInt(localStorage.getItem(BAL_KEY) ?? DEFAULT_BAL, 10);
+  if (isNaN(balance)) balance = DEFAULT_BAL;
+
+  let deck         = [];
+  let playerHand   = [];
+  let dealerHand   = [];
+  let currentBet   = 0;
+  let lastBet      = 0;
+  // gamePhase: 'betting' | 'player' | 'ai' | 'dealer' | 'over'
+  let gamePhase    = 'betting';
+  let insuranceBet = 0;
+  let doubled      = false;
+  let stats        = { win:0, lose:0, push:0, bj:0 };
+  let history      = [];
+
+  // 人機玩家（最多3位）
+  // each: { ...preset, hand:[], status:'idle'|'playing'|'stand'|'bust'|'bj' }
+  let aiActive = [];   // 已加入的 AI（presets）
+  // 遊戲中人機手牌狀態
+  let aiStates = [];   // mirrors aiActive but with hand/status/doubled
+
+  let currentAiIdx = 0;  // 當前正在行動的 AI index
+
+  /* ── DOM ── */
+  const balEl         = document.getElementById('balance-display');
+  const betEl         = document.getElementById('bet-display');
+  const dealerCardsEl = document.getElementById('dealer-cards');
+  const dealerScoreEl = document.getElementById('dealer-score');
+  const playersArea   = document.getElementById('players-area');
+  const btnHit        = document.getElementById('btn-hit');
+  const btnStand      = document.getElementById('btn-stand');
+  const btnDouble     = document.getElementById('btn-double');
+  const btnDeal       = document.getElementById('btn-deal');
+  const btnClear      = document.getElementById('btn-clear-bet');
+  const btnRepeat     = document.getElementById('btn-repeat-bet');
+  const resultOverlay = document.getElementById('result-overlay');
+  const resultIcon    = document.getElementById('result-icon');
+  const resultTitle   = document.getElementById('result-title');
+  const resultPayout  = document.getElementById('result-payout');
+  const btnNext       = document.getElementById('btn-next');
+  const insuranceBar  = document.getElementById('insurance-bar');
+  const insCostEl     = document.getElementById('insurance-cost');
+  const btnInsYes     = document.getElementById('btn-ins-yes');
+  const btnInsNo      = document.getElementById('btn-ins-no');
+  const historyRow    = document.getElementById('history-row');
+  const resultTbody   = document.getElementById('result-tbody');
+  const resDealerVal  = document.getElementById('res-dealer-val');
+  const aiSlotsEl     = document.getElementById('ai-slots');
+  const btnAddAI      = document.getElementById('btn-add-ai');
+  const aiCountLabel  = document.getElementById('ai-count-label');
+
+  /* ── 工具 ── */
+  function saveBalance() { localStorage.setItem(BAL_KEY, balance); }
+  function updateBalanceUI() { balEl.textContent = balance.toLocaleString(); }
+
+  function buildDeck() {
+    const d = [];
+    for (const s of SUITS) for (const r of RANKS) d.push({ suit:s, rank:r });
+    const six = [];
+    for (let i = 0; i < 6; i++) six.push(...d);
+    return six;
+  }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  function drawCard() {
+    if (deck.length < 30) deck = shuffle(buildDeck());
+    return deck.pop();
+  }
+
+  function handValue(hand) {
+    let total = 0, aces = 0;
+    for (const c of hand) { total += RANK_VALS[c.rank]; if (c.rank === 'A') aces++; }
+    while (total > 21 && aces > 0) { total -= 10; aces--; }
+    return total;
+  }
+
+  function isBJ(hand) { return hand.length === 2 && handValue(hand) === 21; }
+
+  /* ── 人機管理 UI ── */
+  function renderAISlots() {
+    aiSlotsEl.innerHTML = '';
+    aiActive.forEach((ai, idx) => {
+      const slot = document.createElement('div');
+      slot.className = 'ai-slot';
+      const strategyText = ai.standAt <= 16 ? '激進' : ai.standAt >= 18 ? '保守' : '標準';
+      slot.innerHTML = `
+        <span class="ai-slot-emoji">${ai.emoji}</span>
+        <span class="ai-slot-name">${ai.name}</span>
+        <span class="ai-slot-strategy">${strategyText}</span>
+        <button class="ai-remove" data-idx="${idx}" title="移除">✕</button>`;
+      aiSlotsEl.appendChild(slot);
+    });
+    aiCountLabel.textContent = `（${aiActive.length} / ${MAX_AI}）`;
+    btnAddAI.disabled = aiActive.length >= MAX_AI;
+  }
+
+  btnAddAI.addEventListener('click', () => {
+    if (aiActive.length >= MAX_AI) return;
+    const preset = AI_PRESETS[aiActive.length];
+    aiActive.push({ ...preset });
+    renderAISlots();
+  });
+
+  aiSlotsEl.addEventListener('click', e => {
+    const btn = e.target.closest('.ai-remove');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    aiActive.splice(idx, 1);
+    renderAISlots();
+  });
+
+  /* ── 建立玩家手牌 DOM ── */
+  function buildPlayersDOM() {
+    playersArea.innerHTML = '';
+
+    // 玩家（人類）
+    const pRow = document.createElement('div');
+    pRow.className = 'hand-row hand-player';
+    pRow.id = 'row-player';
+    pRow.innerHTML = `
+      <div class="hand-label">
+        <span class="player-icon">🙋</span> 玩家
+        <span class="hand-score" id="player-score">-</span>
+        <span class="turn-indicator" id="turn-ind-player" style="display:none">行動中</span>
+      </div>
+      <div class="cards-row" id="player-cards"></div>`;
+    playersArea.appendChild(pRow);
+
+    // AI 玩家
+    aiStates.forEach((ai, i) => {
+      const row = document.createElement('div');
+      row.className = 'hand-row hand-ai';
+      row.id = `row-ai-${i}`;
+      row.innerHTML = `
+        <div class="hand-label">
+          <span class="player-icon">${ai.emoji}</span> ${ai.name}
+          <span class="hand-score" id="ai-score-${i}">-</span>
+          <span class="turn-indicator" id="turn-ind-ai-${i}" style="display:none">行動中</span>
+        </div>
+        <div class="cards-row" id="ai-cards-${i}"></div>`;
+      playersArea.appendChild(row);
+    });
+  }
+
+  /* ── 渲染 ── */
+  function renderCard(card, hidden) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    if (hidden) {
+      el.classList.add('card-back');
+    } else {
+      el.classList.add('card-face');
+      el.classList.add(RED_SUITS.has(card.suit) ? 'card-red' : 'card-black');
+      const inner = document.createElement('div');
+      inner.className = 'card-suit-rank';
+      inner.innerHTML = `<span class="card-rank">${card.rank}</span><span class="card-suit">${card.suit}</span>`;
+      el.appendChild(inner);
+    }
+    return el;
+  }
+
+  function renderDealerHand(reveal) {
+    dealerCardsEl.innerHTML = '';
+    dealerHand.forEach((c, i) => {
+      dealerCardsEl.appendChild(renderCard(c, !reveal && i === 1));
+    });
+    const rowDealer = document.getElementById('row-dealer');
+    if (reveal) {
+      const dv = handValue(dealerHand);
+      dealerScoreEl.textContent = dealerHand.length ? dv : '-';
+      dealerScoreEl.className = 'hand-score';
+      if (dv > 21) dealerScoreEl.classList.add('bust');
+      rowDealer.classList.toggle('active-turn', gamePhase === 'dealer');
+    } else {
+      dealerScoreEl.textContent = dealerHand.length ? RANK_VALS[dealerHand[0].rank] : '-';
+      dealerScoreEl.className = 'hand-score';
+      rowDealer.classList.remove('active-turn');
+    }
+  }
+
+  function renderPlayerHand() {
+    const el = document.getElementById('player-cards');
+    if (!el) return;
+    el.innerHTML = '';
+    playerHand.forEach(c => el.appendChild(renderCard(c, false)));
+
+    const pv = handValue(playerHand);
+    const scoreEl = document.getElementById('player-score');
+    if (!scoreEl) return;
+    scoreEl.textContent = playerHand.length ? pv : '-';
+    scoreEl.className = 'hand-score';
+    if (pv > 21) scoreEl.classList.add('bust');
+    else if (isBJ(playerHand)) scoreEl.classList.add('blackjack');
+
+    const row = document.getElementById('row-player');
+    if (row) row.classList.toggle('active-turn', gamePhase === 'player');
+    const ind = document.getElementById('turn-ind-player');
+    if (ind) ind.style.display = gamePhase === 'player' ? '' : 'none';
+  }
+
+  function renderAIHand(i) {
+    const ai = aiStates[i];
+    const el = document.getElementById(`ai-cards-${i}`);
+    if (!el) return;
+    el.innerHTML = '';
+    ai.hand.forEach(c => el.appendChild(renderCard(c, false)));
+
+    const av = handValue(ai.hand);
+    const scoreEl = document.getElementById(`ai-score-${i}`);
+    if (!scoreEl) return;
+    scoreEl.textContent = ai.hand.length ? av : '-';
+    scoreEl.className = 'hand-score';
+    if (av > 21) scoreEl.classList.add('bust');
+    else if (isBJ(ai.hand)) scoreEl.classList.add('blackjack');
+
+    const row = document.getElementById(`row-ai-${i}`);
+    const isActive = gamePhase === 'ai' && currentAiIdx === i;
+    if (row) row.classList.toggle('active-turn', isActive);
+    const ind = document.getElementById(`turn-ind-ai-${i}`);
+    if (ind) ind.style.display = isActive ? '' : 'none';
+  }
+
+  function renderAll(revealDealer) {
+    renderDealerHand(revealDealer);
+    renderPlayerHand();
+    aiStates.forEach((_, i) => renderAIHand(i));
+  }
+
+  /* ── 按鈕狀態 ── */
+  function setButtons(phase) {
+    const isPlayer = phase === 'player';
+    btnHit.disabled    = !isPlayer;
+    btnStand.disabled  = !isPlayer;
+    btnDouble.disabled = !isPlayer || doubled || playerHand.length !== 2 || balance < currentBet;
+    btnDeal.disabled   = phase !== 'betting';
+    const bettingOk = phase === 'betting';
+    document.querySelectorAll('.chip').forEach(c => {
+      c.style.pointerEvents = bettingOk ? '' : 'none';
+      c.style.opacity       = bettingOk ? '' : '0.4';
+    });
+    btnClear.disabled  = !bettingOk;
+    btnRepeat.disabled = !bettingOk;
+    btnAddAI.disabled  = !bettingOk || aiActive.length >= MAX_AI;
+    aiSlotsEl.querySelectorAll('.ai-remove').forEach(b => b.disabled = !bettingOk);
+  }
+
+  function updateStats() {
+    document.getElementById('stat-win').textContent  = stats.win;
+    document.getElementById('stat-lose').textContent = stats.lose;
+    document.getElementById('stat-push').textContent = stats.push;
+    document.getElementById('stat-bj').textContent   = stats.bj;
+  }
+
+  function addHistory(type) {
+    history.unshift(type);
+    if (history.length > 20) history.pop();
+    const map = { win:'勝', lose:'負', push:'平', bj:'BJ' };
+    historyRow.innerHTML = history.map(t =>
+      `<span class="hist-chip hist-${t}">${map[t]}</span>`
+    ).join('');
+  }
+
+  /* ── 遊戲流程 ── */
+  function startDeal() {
+    if (currentBet <= 0) { alert('請先下注！'); return; }
+    if (currentBet > balance) { alert('餘額不足！'); return; }
+
+    balance -= currentBet;
+    saveBalance(); updateBalanceUI();
+    lastBet    = currentBet;
+    doubled    = false;
+    insuranceBet = 0;
+
+    if (deck.length < 30) deck = shuffle(buildDeck());
+
+    // 初始化 AI 狀態
+    aiStates = aiActive.map(ai => ({ ...ai, hand: [], status: 'playing', doubled: false }));
+
+    buildPlayersDOM();
+
+    playerHand = [drawCard(), drawCard()];
+    dealerHand = [drawCard(), drawCard()];
+    aiStates.forEach(ai => { ai.hand = [drawCard(), drawCard()]; });
+
+    gamePhase = 'player';
+    insuranceBar.classList.remove('show');
+    setButtons('player');
+    renderAll(false);
+
+    const pv = handValue(playerHand);
+    const dv = handValue(dealerHand);
+
+    // 玩家 BJ + 莊家亮 A → 先問保險
+    if (pv === 21 && dealerHand[0].rank === 'A') {
+      const cost = Math.floor(currentBet / 2);
+      if (balance >= cost) { insCostEl.textContent = cost; insuranceBar.classList.add('show'); return; }
+    }
+
+    // 玩家 BJ
+    if (pv === 21) {
+      setTimeout(() => endRound(), 500);
+      return;
+    }
+
+    // 莊家亮 A → 保險
+    if (dealerHand[0].rank === 'A') {
+      const cost = Math.floor(currentBet / 2);
+      if (balance >= cost) { insCostEl.textContent = cost; insuranceBar.classList.add('show'); }
+    }
+  }
+
+  function playerHit() {
+    playerHand.push(drawCard());
+    renderPlayerHand();
+    const pv = handValue(playerHand);
+    if (pv > 21) {
+      gamePhase = 'over'; setButtons('over');
+      setTimeout(startAITurns, 400);
+    } else if (pv === 21 || doubled) {
+      setTimeout(startAITurns, 400);
+    }
+    // update double button
+    btnDouble.disabled = true;
+  }
+
+  function playerStand() { startAITurns(); }
+
+  function playerDouble() {
+    if (balance < currentBet) return;
+    balance -= currentBet;
+    currentBet *= 2;
+    doubled = true;
+    saveBalance(); updateBalanceUI();
+    betEl.textContent = currentBet;
+    playerHand.push(drawCard());
+    renderPlayerHand();
+    const pv = handValue(playerHand);
+    if (pv > 21) { gamePhase = 'over'; setButtons('over'); }
+    setTimeout(startAITurns, 400);
+  }
+
+  /* ── AI 輪流 ── */
+  function startAITurns() {
+    if (aiStates.length === 0) { dealerPlay(); return; }
+    gamePhase = 'ai';
+    currentAiIdx = 0;
+    setButtons('ai');
+    playAI(0);
+  }
+
+  function playAI(idx) {
+    if (idx >= aiStates.length) { dealerPlay(); return; }
+    currentAiIdx = idx;
+    const ai = aiStates[idx];
+
+    // Mark active
+    aiStates.forEach((a, i) => {
+      const row = document.getElementById(`row-ai-${i}`);
+      const ind = document.getElementById(`turn-ind-ai-${i}`);
+      if (row) row.classList.toggle('active-turn', i === idx);
+      if (ind) ind.style.display = i === idx ? '' : 'none';
+    });
+
+    // AI BJ check
+    if (isBJ(ai.hand)) {
+      ai.status = 'bj';
+      renderAIHand(idx);
+      setTimeout(() => playAI(idx + 1), 600);
+      return;
+    }
+
+    function aiStep() {
+      const av = handValue(ai.hand);
+      if (av >= ai.standAt || av > 21) {
+        ai.status = av > 21 ? 'bust' : 'stand';
+        renderAIHand(idx);
+        setTimeout(() => playAI(idx + 1), 600);
+      } else {
+        // Optionally double (only on first 2 cards, value 9/10/11)
+        if (ai.hand.length === 2 && !ai.doubled && [9,10,11].includes(av)) {
+          ai.doubled = true;
+          ai.hand.push(drawCard());
+          ai.status = handValue(ai.hand) > 21 ? 'bust' : 'stand';
+          renderAIHand(idx);
+          setTimeout(() => playAI(idx + 1), 600);
+        } else {
+          ai.hand.push(drawCard());
+          renderAIHand(idx);
+          setTimeout(aiStep, 550);
+        }
+      }
+    }
+    setTimeout(aiStep, 400);
+  }
+
+  /* ── 莊家輪 ── */
+  function dealerPlay() {
+    gamePhase = 'dealer';
+    setButtons('dealer');
+    insuranceBar.classList.remove('show');
+
+    // clear all active highlights
+    aiStates.forEach((_, i) => {
+      const row = document.getElementById(`row-ai-${i}`);
+      const ind = document.getElementById(`turn-ind-ai-${i}`);
+      if (row) row.classList.remove('active-turn');
+      if (ind) ind.style.display = 'none';
+    });
+    document.getElementById('row-dealer').classList.add('active-turn');
+
+    function step() {
+      const dv = handValue(dealerHand);
+      if (dv <= 16) {
+        dealerHand.push(drawCard());
+        renderDealerHand(true);
+        setTimeout(step, 520);
+      } else {
+        endRound();
+      }
+    }
+    renderDealerHand(true);
+    setTimeout(step, 650);
+  }
+
+  /* ── 結算 ── */
+  function outcomeVsDealer(hand) {
+    const pv = handValue(hand);
+    const dv = handValue(dealerHand);
+    const pBJ = isBJ(hand);
+    const dBJ = isBJ(dealerHand);
+
+    if (pBJ && dBJ) return 'push';
+    if (pBJ)        return 'bj';
+    if (dBJ)        return 'lose';
+    if (pv > 21)    return 'bust';
+    if (dv > 21)    return 'win';
+    if (pv > dv)    return 'win';
+    if (pv < dv)    return 'lose';
+    return 'push';
+  }
+
+  function endRound() {
+    gamePhase = 'over';
+    setButtons('over');
+    renderAll(true);
+    insuranceBar.classList.remove('show');
+
+    // Clear active highlights
+    document.getElementById('row-dealer').classList.remove('active-turn');
+
+    const dv  = handValue(dealerHand);
+    const dBJ = isBJ(dealerHand);
+
+    // 保險結算
+    let insResult = 0;
+    if (insuranceBet > 0) {
+      insResult = dBJ ? insuranceBet * 2 : -insuranceBet;
+      balance  += insuranceBet + insResult;
+    }
+
+    // 玩家結算
+    const pOutcome = outcomeVsDealer(playerHand);
+    const pv = handValue(playerHand);
+    let playerNet = 0;
+
+    if (pOutcome === 'bj') {
+      playerNet = Math.floor(currentBet * 1.5);
+      balance  += currentBet + playerNet;
+      stats.bj++;
+      addHistory('bj');
+    } else if (pOutcome === 'win') {
+      playerNet = currentBet;
+      balance  += currentBet * 2;
+      stats.win++;
+      addHistory('win');
+    } else if (pOutcome === 'push') {
+      balance += currentBet;
+      stats.push++;
+      addHistory('push');
+    } else {
+      playerNet = -currentBet;
+      stats.lose++;
+      addHistory('lose');
+    }
+    playerNet += insResult;
+
+    saveBalance(); updateBalanceUI();
+    updateStats();
+
+    // 更新各手牌分數 CSS
+    const psEl = document.getElementById('player-score');
+    if (psEl) {
+      psEl.className = 'hand-score';
+      if (['bj','win'].includes(pOutcome)) psEl.classList.add('win');
+      else if (pOutcome === 'push') psEl.classList.add('push');
+      else psEl.classList.add('lose');
+    }
+    aiStates.forEach((ai, i) => {
+      const ao = outcomeVsDealer(ai.hand);
+      const scoreEl = document.getElementById(`ai-score-${i}`);
+      if (!scoreEl) return;
+      scoreEl.className = 'hand-score';
+      if (['bj','win'].includes(ao)) scoreEl.classList.add('win');
+      else if (ao === 'push') scoreEl.classList.add('push');
+      else scoreEl.classList.add('lose');
+    });
+
+    // ── 結果彈窗 ──
+    const outcomeMap = { bj:'BJ！', win:'勝', lose:'負', push:'平', bust:'爆牌' };
+    const classMap   = { bj:'bj',   win:'win',lose:'lose',push:'push',bust:'bust' };
+
+    // 莊家行
+    resDealerVal.textContent = dv > 21 ? `${dv} 爆牌` : dv;
+    resDealerVal.className = `dealer-result-val${dv > 21 ? ' bust' : ''}`;
+
+    // 各玩家行
+    resultTbody.innerHTML = '';
+    const allRows = [
+      { icon:'🙋', name:'玩家（你）', hand: playerHand },
+      ...aiStates.map(ai => ({ icon: ai.emoji, name: ai.name, hand: ai.hand }))
+    ];
+    allRows.forEach(row => {
+      const oc  = outcomeVsDealer(row.hand);
+      const val = handValue(row.hand);
+      const tr  = document.createElement('tr');
+      tr.innerHTML = `
+        <td><div class="rt-name"><span class="ri">${row.icon}</span><span class="rn">${row.name}</span></div></td>
+        <td class="rt-pts">${val > 21 ? `<span style="color:#f87171">${val}</span>` : val}</td>
+        <td class="rt-res ${classMap[oc]}">${outcomeMap[oc]}</td>`;
+      resultTbody.appendChild(tr);
+    });
+
+    // 圖標 / 標題
+    let icon, titleText, titleClass;
+    if (pOutcome === 'bj')   { icon='🃏'; titleText='Blackjack！'; titleClass='bj'; }
+    else if (pOutcome === 'win')  { icon='🎉'; titleText='勝利！';     titleClass='win'; }
+    else if (pOutcome === 'push') { icon='🤝'; titleText='平局';       titleClass='push'; }
+    else                          { icon='😞'; titleText=pOutcome==='bust'?'爆牌！':'負！'; titleClass='lose'; }
+
+    const netStr = playerNet > 0 ? `+${playerNet}` : playerNet === 0 ? '±0' : `${playerNet}`;
+    const netClass = playerNet > 0 ? 'positive' : playerNet < 0 ? 'negative' : 'neutral';
+    if (insResult !== 0) {
+      // show insurance in payout line
+    }
+
+    resultIcon.textContent   = icon;
+    resultTitle.textContent  = titleText;
+    resultTitle.className    = `result-title ${titleClass}`;
+    resultPayout.textContent = `玩家淨收益 ${netStr}${insResult !== 0 ? `（含保險 ${insResult > 0 ? '+' : ''}${insResult}）` : ''}`;
+    resultPayout.className   = `result-payout ${netClass}`;
+
+    setTimeout(() => resultOverlay.classList.remove('hidden'), 400);
+  }
+
+  /* ── 事件 ── */
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (gamePhase !== 'betting') return;
+      const val = parseInt(chip.dataset.val, 10);
+      if (balance - currentBet < val) return;
+      currentBet += val;
+      betEl.textContent = currentBet;
+    });
+  });
+
+  btnClear.addEventListener('click', () => {
+    if (gamePhase !== 'betting') return;
+    currentBet = 0; betEl.textContent = 0;
+  });
+
+  btnRepeat.addEventListener('click', () => {
+    if (!lastBet || gamePhase !== 'betting') return;
+    if (balance < lastBet) { alert('餘額不足！'); return; }
+    currentBet = lastBet; betEl.textContent = currentBet;
+  });
+
+  btnDeal.addEventListener('click', startDeal);
+  btnHit.addEventListener('click', playerHit);
+  btnStand.addEventListener('click', playerStand);
+  btnDouble.addEventListener('click', playerDouble);
+
+  btnInsYes.addEventListener('click', () => {
+    const cost = Math.floor(currentBet / 2);
+    if (balance < cost) return;
+    insuranceBet = cost; balance -= cost;
+    saveBalance(); updateBalanceUI();
+    insuranceBar.classList.remove('show');
+    if (isBJ(playerHand)) { setTimeout(() => endRound(), 400); }
+  });
+
+  btnInsNo.addEventListener('click', () => {
+    insuranceBar.classList.remove('show');
+    if (isBJ(playerHand)) { setTimeout(() => endRound(), 400); }
+  });
+
+  btnNext.addEventListener('click', () => {
+    resultOverlay.classList.add('hidden');
+    gamePhase   = 'betting';
+    currentBet  = 0;
+    betEl.textContent = 0;
+    playerHand  = []; dealerHand = [];
+    doubled     = false; insuranceBet = 0;
+    aiStates    = [];
+
+    // 清空手牌區
+    playersArea.innerHTML = '';
+    dealerCardsEl.innerHTML = '';
+    dealerScoreEl.textContent = '-'; dealerScoreEl.className = 'hand-score';
+    document.getElementById('row-dealer').classList.remove('active-turn');
+
+    setButtons('betting');
+    renderAISlots();
+
+    if (balance <= 0) {
+      balance = DEFAULT_BAL;
+      saveBalance(); updateBalanceUI();
+      alert('餘額歸零！已為您補充 10,000。');
+    }
+  });
+
+  /* ── 初始化 ── */
+  deck = shuffle(buildDeck());
+  setButtons('betting');
+  updateBalanceUI();
+  updateStats();
+  renderAISlots();
+
+})();
+</script>
+
+<script>
+  document.getElementById('btn-start-game').addEventListener('click', () => {
+    document.getElementById('welcome-screen').style.display = 'none';
+  });
+
+  // ── 遊戲教學 ──
+  (function () {
+    const overlay = document.getElementById('tutorial-overlay');
+    document.getElementById('btn-open-tutorial').addEventListener('click', () => overlay.classList.remove('hidden'));
+    document.getElementById('tutorial-close').addEventListener('click', () => overlay.classList.add('hidden'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.add('hidden'); });
+    document.querySelectorAll('.tutorial-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tutorial-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tutorial-section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tut-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+  })();
+
+  // ── 歡迎屏玩家資料 ──
+  (function () {
+    const KEYS = { name: 'mj-player-name', avatar: 'mj-player-avatar', balance: 'mj-player-balance' };
+    const DEF  = { name: '玩家', avatar: '🀄', bal: 10000 };
+
+    function loadWsProfile() {
+      const name   = localStorage.getItem(KEYS.name)   || DEF.name;
+      const avatar = localStorage.getItem(KEYS.avatar) || DEF.avatar;
+      const bal    = parseInt(localStorage.getItem(KEYS.balance) ?? DEF.bal, 10);
+      document.getElementById('ws-profile-name').textContent = name;
+      document.getElementById('ws-avatar').textContent = avatar;
+      const balEl = document.getElementById('ws-profile-balance');
+      balEl.textContent = isNaN(bal) ? DEF.bal.toLocaleString() : bal.toLocaleString();
+      balEl.className = 'ws-balance-val' + (bal < 0 ? ' overdraft' : '');
+      document.querySelectorAll('.ws-ap-opt').forEach(b =>
+        b.classList.toggle('selected', b.dataset.avatar === avatar));
+    }
+
+    document.getElementById('ws-btn-avatar').addEventListener('click', () =>
+      document.getElementById('ws-ap-overlay').classList.remove('hidden'));
+    document.getElementById('ws-ap-close').addEventListener('click', () =>
+      document.getElementById('ws-ap-overlay').classList.add('hidden'));
+    document.getElementById('ws-ap-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('ws-ap-overlay'))
+        document.getElementById('ws-ap-overlay').classList.add('hidden');
+    });
+    document.querySelectorAll('.ws-ap-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const av = btn.dataset.avatar;
+        localStorage.setItem(KEYS.avatar, av);
+        document.getElementById('ws-avatar').textContent = av;
+        document.querySelectorAll('.ws-ap-opt').forEach(b =>
+          b.classList.toggle('selected', b.dataset.avatar === av));
+      });
+    });
+    document.getElementById('ws-btn-rename').addEventListener('click', () => {
+      const cur = localStorage.getItem(KEYS.name) || DEF.name;
+      const val = prompt('請輸入暱稱：', cur);
+      if (val !== null && val.trim()) {
+        const t = val.trim().slice(0, 12);
+        localStorage.setItem(KEYS.name, t);
+        document.getElementById('ws-profile-name').textContent = t;
+      }
+    });
+
+    loadWsProfile();
+  })();
+</script>
+
+<!-- 創作者署名 -->
+<div style="position:fixed;bottom:12px;right:16px;z-index:9999;font-size:0.68rem;color:rgba(255,255,255,0.22);letter-spacing:0.05em;pointer-events:none;user-select:none;">
+  Created by Kris Ng Wei Jian
+</div>
+
+</body>
+</html>

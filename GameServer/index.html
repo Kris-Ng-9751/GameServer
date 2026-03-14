@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<!--
+  ══════════════════════════════════════════════════════════════
+  index.html — 主導覽頁（單機遊戲大廳）
+  ══════════════════════════════════════════════════════════════
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>🎮 单机游戏大厅</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 15%, #1a3545 0%, #0d1e2a 55%, #060c12 100%);
+      font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', sans-serif;
+      color: #f0e6c8;
+      overflow-x: hidden;
+    }
+
+    /* ── 背景裝飾 ── */
+    .bg-tiles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    /* 麻將牌：上下飄動 + 小幅旋轉 */
+    .bg-tile {
+      position: absolute;
+      opacity: 0.045;
+      animation: floatTile 20s ease-in-out infinite;
+    }
+    .bg-tile:nth-child(1)  { font-size: 3rem;   top: 4%;  left: 2%;  animation-delay: 0s; }
+    .bg-tile:nth-child(2)  { font-size: 2.5rem; top: 12%; left: 90%; animation-delay: 2s; }
+    .bg-tile:nth-child(3)  { font-size: 2rem;   top: 55%; left: 4%;  animation-delay: 4s; }
+    .bg-tile:nth-child(4)  { font-size: 3rem;   top: 72%; left: 82%; animation-delay: 1s; }
+    .bg-tile:nth-child(5)  { font-size: 4rem;   top: 38%; left: 48%; animation-delay: 6s; }
+    .bg-tile:nth-child(6)  { font-size: 2.5rem; top: 88%; left: 28%; animation-delay: 3s; }
+    .bg-tile:nth-child(7)  { font-size: 2rem;   top: 22%; left: 62%; animation-delay: 5s; }
+    .bg-tile:nth-child(8)  { font-size: 2.8rem; top: 92%; left: 65%; animation-delay: 7s; }
+    .bg-tile:nth-child(9)  { font-size: 2rem;   top: 65%; left: 38%; animation-delay: 9s; }
+    .bg-tile:nth-child(10) { font-size: 2.5rem; top: 30%; left: 18%; animation-delay: 11s; }
+
+    @keyframes floatTile {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      33%       { transform: translateY(-20px) rotate(10deg); }
+      66%       { transform: translateY(12px) rotate(-6deg); }
+    }
+
+    /* 撲克牌：左右漂移 + 翻轉感 */
+    .bg-card {
+      position: absolute;
+      opacity: 0.05;
+      animation: floatCard 24s ease-in-out infinite;
+    }
+    .bg-card:nth-child(1)  { font-size: 2.6rem; top: 8%;  left: 75%; animation-delay: 1s; }
+    .bg-card:nth-child(2)  { font-size: 2rem;   top: 20%; left: 10%; animation-delay: 4s; }
+    .bg-card:nth-child(3)  { font-size: 3rem;   top: 45%; left: 88%; animation-delay: 0s; }
+    .bg-card:nth-child(4)  { font-size: 2.2rem; top: 60%; left: 20%; animation-delay: 7s; }
+    .bg-card:nth-child(5)  { font-size: 2.8rem; top: 80%; left: 55%; animation-delay: 3s; }
+    .bg-card:nth-child(6)  { font-size: 2rem;   top: 33%; left: 33%; animation-delay: 9s; }
+    .bg-card:nth-child(7)  { font-size: 3.2rem; top: 70%; left: 72%; animation-delay: 5s; }
+    .bg-card:nth-child(8)  { font-size: 2.4rem; top: 15%; left: 45%; animation-delay: 12s; }
+    .bg-card:nth-child(9)  { font-size: 2rem;   top: 50%; left: 58%; animation-delay: 14s; }
+    .bg-card:nth-child(10) { font-size: 2.5rem; top: 90%; left: 8%;  animation-delay: 6s; }
+
+    @keyframes floatCard {
+      0%   { transform: translateX(0)     translateY(0)    rotateY(0deg)   rotate(-8deg); }
+      25%  { transform: translateX(14px)  translateY(-18px) rotateY(20deg) rotate(-4deg); }
+      50%  { transform: translateX(-8px)  translateY(-8px) rotateY(-15deg) rotate(2deg); }
+      75%  { transform: translateX(10px)  translateY(10px) rotateY(10deg)  rotate(-6deg); }
+      100% { transform: translateX(0)     translateY(0)    rotateY(0deg)   rotate(-8deg); }
+    }
+
+    /* ── 頁面容器 ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2.6rem;
+    }
+
+    /* ── 標題 ── */
+    .home-header { text-align: center; }
+    .home-icon {
+      font-size: 3.8rem;
+      line-height: 1;
+      display: block;
+      animation: pulse-glow 3.5s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(255,200,60,0.4)); }
+      50%       { filter: drop-shadow(0 0 26px rgba(255,200,60,0.8)); }
+    }
+    .home-title {
+      margin: 0.5rem 0 0.3rem;
+      font-size: clamp(1.7rem, 5.5vw, 2.5rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #ffe066 0%, #ffb300 50%, #ffe066 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .home-subtitle {
+      font-size: 0.86rem;
+      color: #7aa8a5;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── 分區 ── */
+    .section { display: flex; flex-direction: column; gap: 0.85rem; }
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* ── 卡片格線 ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.8rem;
+    }
+    @media (min-width: 460px) { .cards-grid { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 680px) { .cards-grid.col3 { grid-template-columns: repeat(3, 1fr); } }
+
+    /* ── 通用遊戲卡片 ── */
+    .game-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem 1.25rem;
+      border-radius: 14px;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      cursor: pointer;
+    }
+    .game-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.22s;
+    }
+    .game-card:hover {
+      transform: translateY(-3px) scale(1.012);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 16px rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
+    }
+    .game-card:hover::before { opacity: 1; }
+    .game-card:active { transform: translateY(-1px) scale(1.004); }
+
+    /* ── 維護中（不可點擊） ── */
+    .game-card.maintenance {
+      pointer-events: none;
+      cursor: default;
+      opacity: 0.42;
+      filter: grayscale(0.6);
+    }
+    .game-card.maintenance:hover { transform: none; box-shadow: none; }
+
+    /* ── 即將推出 ── */
+    .game-card.coming-soon {
+      pointer-events: none;
+      cursor: default;
+      opacity: 0.5;
+    }
+    .game-card.coming-soon:hover { transform: none; box-shadow: none; }
+    .game-card.coming-soon .card-badge {
+      background: rgba(120,120,160,0.22) !important;
+      color: #9090c0 !important;
+      border-color: rgba(120,120,160,0.3) !important;
+    }
+
+    /* ── 卡片內容 ── */
+    .card-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .card-body { flex: 1; min-width: 0; }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f0dfa0;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+    .card-desc {
+      font-size: 0.76rem;
+      color: #88a8a5;
+      line-height: 1.55;
+    }
+    .card-badge {
+      flex-shrink: 0;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      padding: 0.26em 0.65em;
+      border-radius: 999px;
+      background: rgba(240,215,100,0.14);
+      color: #d4b84a;
+      border: 1px solid rgba(240,215,100,0.28);
+      white-space: nowrap;
+    }
+    .card-arrow {
+      flex-shrink: 0;
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.25);
+      transition: transform 0.2s, color 0.2s;
+    }
+    .game-card:not(.maintenance):not(.coming-soon):hover .card-arrow {
+      transform: translateX(5px);
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* 維護標籤 */
+    .tag-maintenance {
+      flex-shrink: 0;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 0.25em 0.6em;
+      border-radius: 999px;
+      background: rgba(255,100,60,0.18);
+      color: #ff8060;
+      border: 1px solid rgba(255,100,60,0.35);
+    }
+
+    /* 即將推出標籤 */
+    .tag-coming {
+      flex-shrink: 0;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 0.25em 0.6em;
+      border-radius: 999px;
+      background: rgba(100,100,180,0.18);
+      color: #9898d8;
+      border: 1px solid rgba(100,100,180,0.3);
+    }
+
+    /* ── 底部 ── */
+    .home-footer {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.18);
+      text-align: center;
+      letter-spacing: 0.06em;
+      padding-bottom: 0.5rem;
+    }
+
+    /* ── 玩家資料卡（固定左上角）── */
+    .lobby-profile-card {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(10,22,32,0.82);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 10px 16px 10px 10px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      max-width: 220px;
+    }
+    .lobby-avatar-wrap {
+      position: relative;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a5c48, #0d3260);
+      border: 2px solid #f6b722;
+      box-shadow: 0 0 0 3px rgba(246,183,34,0.18), 0 3px 10px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .lobby-avatar-wrap:hover {
+      border-color: #ffe066;
+      box-shadow: 0 0 0 4px rgba(246,183,34,0.3), 0 3px 14px rgba(0,0,0,0.6);
+    }
+    .lobby-avatar-emoji { font-size: 1.55rem; line-height: 1; user-select: none; }
+    .lobby-avatar-edit-badge {
+      position: absolute;
+      bottom: -2px; right: -2px;
+      width: 17px; height: 17px;
+      border-radius: 50%;
+      background: #f6b722;
+      color: #3b2600;
+      font-size: 0.55rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #0d1e2a;
+    }
+    .lobby-profile-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .lobby-profile-name-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .lobby-profile-name {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #f0e6c8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 90px;
+    }
+    .lobby-edit-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 0.72rem;
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    .lobby-edit-btn:hover { color: #f6b722; background: rgba(246,183,34,0.1); }
+    .lobby-balance-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .lobby-balance-label {
+      font-size: 0.66rem;
+      color: #7aa8a5;
+    }
+    .lobby-balance-val {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #f6c847;
+    }
+    .lobby-reset-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #666;
+      font-size: 0.62rem;
+      cursor: pointer;
+      padding: 1px 5px;
+      border-radius: 4px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .lobby-reset-btn:hover { color: #f6b722; border-color: rgba(246,183,34,0.4); }
+
+    /* ── 頭像選擇器 ── */
+    .lobby-avatar-picker {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(4px);
+    }
+    .lobby-avatar-picker.hidden { display: none; }
+    .lobby-avatar-picker-panel {
+      background: rgba(10,24,36,0.96);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      max-width: 320px;
+      width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+    }
+    .lobby-avatar-picker-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f6c847;
+      margin-bottom: 16px;
+    }
+    .lobby-avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .lobby-avatar-opt {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 8px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .lobby-avatar-opt:hover {
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(246,183,34,0.5);
+      transform: scale(1.08);
+    }
+    .lobby-avatar-opt.selected {
+      background: rgba(246,183,34,0.18);
+      border-color: #f6b722;
+    }
+    .lobby-avatar-close-btn {
+      padding: 7px 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #ccc;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .lobby-avatar-close-btn:hover { background: rgba(255,255,255,0.16); }
+  </style>
+</head>
+<body>
+
+  <!-- 背景裝飾 -->
+  <div class="bg-tiles">
+    <!-- 麻將牌 -->
+    <span class="bg-tile">🀇</span>
+    <span class="bg-tile">🀙</span>
+    <span class="bg-tile">🀄</span>
+    <span class="bg-tile">🀅</span>
+    <span class="bg-tile">🀃</span>
+    <span class="bg-tile">🀐</span>
+    <span class="bg-tile">🀖</span>
+    <span class="bg-tile">🀆</span>
+    <span class="bg-tile">🀋</span>
+    <span class="bg-tile">🀑</span>
+  </div>
+
+  <!-- 撲克牌 -->
+  <div class="bg-tiles" style="z-index:0;">
+    <span class="bg-card">🂮</span>
+    <span class="bg-card">🂱</span>
+    <span class="bg-card">🃎</span>
+    <span class="bg-card">🃁</span>
+    <span class="bg-card">🂻</span>
+    <span class="bg-card">🃑</span>
+    <span class="bg-card">🂭</span>
+    <span class="bg-card">🃞</span>
+    <span class="bg-card">🂡</span>
+    <span class="bg-card">🃍</span>
+  </div>
+
+  <!-- 玩家資料卡（固定左上角）-->
+  <div class="lobby-profile-card">
+    <div class="lobby-avatar-wrap" id="lobby-btn-pick-avatar" title="更換頭像">
+      <span class="lobby-avatar-emoji" id="lobby-profile-avatar">🀄</span>
+      <div class="lobby-avatar-edit-badge">✎</div>
+    </div>
+    <div class="lobby-profile-info">
+      <div class="lobby-profile-name-row">
+        <span class="lobby-profile-name" id="lobby-profile-name">玩家</span>
+        <button class="lobby-edit-btn" id="lobby-btn-edit-name" title="編輯名字">✎</button>
+      </div>
+      <div class="lobby-balance-row">
+        <span class="lobby-balance-label">餘額</span>
+        <span class="lobby-balance-val" id="lobby-profile-balance">10,000</span>
+        <button class="lobby-reset-btn" id="lobby-btn-reset-balance" title="重置">↺</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頭像選擇器 overlay -->
+  <div id="lobby-avatar-picker" class="lobby-avatar-picker hidden">
+    <div class="lobby-avatar-picker-panel">
+      <div class="lobby-avatar-picker-title">選擇頭像</div>
+      <div class="lobby-avatar-grid">
+        <button class="lobby-avatar-opt" data-avatar="🀄">🀄</button>
+        <button class="lobby-avatar-opt" data-avatar="🎴">🎴</button>
+        <button class="lobby-avatar-opt" data-avatar="🃏">🃏</button>
+        <button class="lobby-avatar-opt" data-avatar="🎰">🎰</button>
+        <button class="lobby-avatar-opt" data-avatar="🦁">🦁</button>
+        <button class="lobby-avatar-opt" data-avatar="🐯">🐯</button>
+        <button class="lobby-avatar-opt" data-avatar="🐉">🐉</button>
+        <button class="lobby-avatar-opt" data-avatar="🦊">🦊</button>
+        <button class="lobby-avatar-opt" data-avatar="🐼">🐼</button>
+        <button class="lobby-avatar-opt" data-avatar="👑">👑</button>
+        <button class="lobby-avatar-opt" data-avatar="⭐">⭐</button>
+        <button class="lobby-avatar-opt" data-avatar="🎭">🎭</button>
+      </div>
+      <button class="lobby-avatar-close-btn" id="lobby-btn-avatar-close">關閉</button>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- 標題 -->
+    <header class="home-header">
+      <span class="home-icon">🎮</span>
+      <h1 class="home-title">單機遊戲大廳</h1>
+      <p class="home-subtitle">純前端 · 玩家 vs AI · 無需伺服器</p>
+    </header>
+
+    <!-- ── 麻將 ── -->
+    <section class="section">
+      <div class="section-label">🀄 麻將</div>
+      <div class="cards-grid col3">
+
+        <a class="game-card" href="mahjong3.html">
+          <div class="card-icon">👥</div>
+          <div class="card-body">
+            <div class="card-title">三人麻將</div>
+            <div class="card-desc">玩家 vs 2 個 AI<br>僅筒子·字牌（76張）<br>無吃牌</div>
+          </div>
+          <div class="card-badge">3P</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+        <a class="game-card" href="mahjong4.html">
+          <div class="card-icon">👨‍👩‍👧‍👦</div>
+          <div class="card-body">
+            <div class="card-title">四人麻將</div>
+            <div class="card-desc">玩家 vs 3 個 AI<br>马来西亚14張規則<br>吃碰槓胡</div>
+          </div>
+          <div class="card-badge">4P</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+
+        <a class="game-card" href="rummy.html">
+          <div class="card-icon">🀫</div>
+          <div class="card-body">
+            <div class="card-title">拉米麻將</div>
+            <div class="card-desc">Mahjong Rummy<br>刻子·順子·自摸<br>玩家 vs AI</div>
+          </div>
+          <div class="card-badge">4P</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ── 牌類遊戲 ── -->
+    <section class="section">
+      <div class="section-label">🃏 牌類遊戲</div>
+      <div class="cards-grid col3">
+
+        <a class="game-card" href="doudizhu.html">
+          <div class="card-icon">🃏</div>
+          <div class="card-body">
+            <div class="card-title">斗地主</div>
+            <div class="card-desc">玩家 vs 2 個 AI<br>經典三人規則<br>炸彈·飛機·順子</div>
+          </div>
+          <div class="card-badge">3P</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+        <a class="game-card" href="blackjack.html">
+          <div class="card-icon">🂡🂮</div>
+          <div class="card-body">
+            <div class="card-title">21 點</div>
+            <div class="card-desc">Blackjack<br>玩家 vs 莊家<br>BJ 賠率 3:2</div>
+          </div>
+          <div class="card-badge">2P+</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+        <a class="game-card" href="89point.html">
+          <div class="card-icon">🂨🂩</div>
+          <div class="card-body">
+            <div class="card-title">89 點</div>
+            <div class="card-desc">Nine-Nine<br>玩家 vs 莊家<br>天牌賠率 1.5x</div>
+          </div>
+          <div class="card-badge">2P+</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+        <a class="game-card" href="baccarat.html">
+          <div class="card-icon">🎴</div>
+          <div class="card-body">
+            <div class="card-title">百家樂</div>
+            <div class="card-desc">Baccarat<br>閒家 vs 莊家<br>靠近 9 點者勝</div>
+          </div>
+          <div class="card-badge">不限</div>
+          <div class="card-arrow">›</div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ── 其他遊戲 ── -->
+    <section class="section">
+      <div class="section-label">🎰 赌博遊戲</div>
+      <div class="cards-grid col3">
+
+        <div class="game-card coming-soon">
+          <div class="card-icon">🎰</div>
+          <div class="card-body">
+            <div class="card-title">老虎机</div>
+            <div class="card-desc">經典老虎機玩法<br>即將推出，敬請期待</div>
+          </div>
+          <span class="tag-coming">即將推出</span>
+        </div>
+
+        <div class="game-card coming-soon">
+          <div class="card-icon">🎯</div>
+          <div class="card-body">
+            <div class="card-title">轮盘赌</div>
+            <div class="card-desc">經典歐式輪盤玩法<br>即將推出，敬請期待</div>
+          </div>
+          <span class="tag-coming">即將推出</span>
+        </div>
+
+        <div class="game-card coming-soon">
+          <div class="card-icon">💎</div>
+          <div class="card-body">
+            <div class="card-title">連線寶石</div>
+            <div class="card-desc">連線寶石·幸運轉盤<br>即將推出，敬請期待</div>
+          </div>
+          <span class="tag-coming">即將推出</span>
+        </div>
+
+        <div class="game-card coming-soon">
+          <div class="card-icon">⚡</div>
+          <div class="card-body">
+            <div class="card-title">奥林匹斯之门</div>
+            <div class="card-desc">倍數加乘·高配轉軸<br>即將推出，敬請期待</div>
+          </div>
+          <span class="tag-coming">即將推出</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── 娱乐游戏 ── -->
+    <section class="section">
+      <div class="section-label">🎲 娱乐游戏</div>
+      <div class="cards-grid col3">
+
+        <div class="game-card coming-soon">
+          <div class="card-icon">🃏</div>
+          <div class="card-body">
+            <div class="card-title">UNO</div>
+            <div class="card-desc">經典 UNO 紙牌玩法<br>玩家 vs AI<br>即將推出，敬請期待</div>
+          </div>
+          <span class="tag-coming">即將推出</span>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="home-footer">測試版 · 純前端運算 · 無需伺服器</footer>
+
+  </div>
+
+<script>
+(function () {
+  const KEYS = { name: 'mj-player-name', avatar: 'mj-player-avatar', balance: 'mj-player-balance' };
+  const DEFAULT_AVATAR = '🀄';
+  const DEFAULT_NAME   = '玩家';
+  const DEFAULT_BAL    = 10000;
+
+  const avatarEl   = document.getElementById('lobby-profile-avatar');
+  const nameEl     = document.getElementById('lobby-profile-name');
+  const balEl      = document.getElementById('lobby-profile-balance');
+  const pickerEl   = document.getElementById('lobby-avatar-picker');
+
+  function loadProfile() {
+    avatarEl.textContent = localStorage.getItem(KEYS.avatar) || DEFAULT_AVATAR;
+    nameEl.textContent   = localStorage.getItem(KEYS.name)   || DEFAULT_NAME;
+    const bal = parseInt(localStorage.getItem(KEYS.balance) ?? DEFAULT_BAL, 10);
+    balEl.textContent    = isNaN(bal) ? DEFAULT_BAL.toLocaleString() : bal.toLocaleString();
+    // mark selected avatar
+    document.querySelectorAll('.lobby-avatar-opt').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.avatar === avatarEl.textContent);
+    });
+  }
+
+  // Pick avatar
+  document.getElementById('lobby-btn-pick-avatar').addEventListener('click', () => {
+    pickerEl.classList.remove('hidden');
+  });
+  document.getElementById('lobby-btn-avatar-close').addEventListener('click', () => {
+    pickerEl.classList.add('hidden');
+  });
+  pickerEl.addEventListener('click', e => {
+    if (e.target === pickerEl) pickerEl.classList.add('hidden');
+  });
+  document.querySelectorAll('.lobby-avatar-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const av = btn.dataset.avatar;
+      localStorage.setItem(KEYS.avatar, av);
+      avatarEl.textContent = av;
+      document.querySelectorAll('.lobby-avatar-opt').forEach(b =>
+        b.classList.toggle('selected', b.dataset.avatar === av));
+    });
+  });
+
+  // Edit name
+  document.getElementById('lobby-btn-edit-name').addEventListener('click', () => {
+    const cur = localStorage.getItem(KEYS.name) || DEFAULT_NAME;
+    const val = prompt('請輸入暱稱：', cur);
+    if (val !== null && val.trim()) {
+      const trimmed = val.trim().slice(0, 12);
+      localStorage.setItem(KEYS.name, trimmed);
+      nameEl.textContent = trimmed;
+    }
+  });
+
+  // Reset balance
+  document.getElementById('lobby-btn-reset-balance').addEventListener('click', () => {
+    if (confirm('確定要將餘額重置為 10,000 嗎？')) {
+      localStorage.removeItem(KEYS.balance);
+      balEl.textContent = DEFAULT_BAL.toLocaleString();
+    }
+  });
+
+  loadProfile();
+})();
+</script>
+
+  <!-- 創作者署名 -->
+  <div style="position:fixed;bottom:12px;right:16px;z-index:9999;font-size:0.68rem;color:rgba(255,255,255,0.22);letter-spacing:0.05em;pointer-events:none;user-select:none;">
+    Created by Kris Ng Wei Jian
+  </div>
+
+</body>
+</html>
