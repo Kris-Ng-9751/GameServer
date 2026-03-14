@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<!--
+  ══════════════════════════════════════════════════════════════
+  uno.html — UNO 单机版
+  四人、108张牌、匹配颜色或数字/符号，先出完者胜
+  ══════════════════════════════════════════════════════════════
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>UNO — 单机版</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; width: 100%;
+      font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+      background: linear-gradient(160deg, #1a237e 0%, #0d47a1 40%, #01579b 100%);
+      color: #fff;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #game-root {
+      width: 100vw; height: 100dvh;
+      display: flex; flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.35);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .top-bar-title { font-size: 1.1rem; font-weight: 800; color: #ffd54f; letter-spacing: 0.08em; }
+    .top-bar-sub { font-size: 0.72rem; color: #90caf9; margin-left: 6px; }
+    .top-bar-right { display: flex; gap: 8px; align-items: center; }
+    .btn-top {
+      padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.1); color: #fff; cursor: pointer;
+      font-size: 0.8rem; text-decoration: none; transition: background .15s;
+    }
+    .btn-top:hover { background: rgba(255,255,255,0.2); }
+
+    #game-table {
+      flex: 1; display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      grid-template-columns: 1fr auto 1fr;
+      grid-template-areas:
+        "top1  top1  top1"
+        "left2 center right3"
+        "hand0 hand0 hand0"
+        "act   act   act";
+      gap: 6px; padding: 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ai-player-area {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px; padding: 6px 10px;
+      min-width: 0; overflow: hidden;
+    }
+    #player-area-1 { grid-area: top1; }
+    #player-area-2 { grid-area: left2; justify-self: end; }
+    #player-area-3 { grid-area: right3; justify-self: start; }
+
+    .player-info-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .player-avatar { font-size: 1.1rem; }
+    .player-name { font-size: 0.85rem; font-weight: 600; color: #bbdefb; }
+    .player-name.is-current { color: #ffd54f; text-shadow: 0 0 8px rgba(255,213,79,0.6); }
+    .card-count { font-size: 0.7rem; color: #90caf9; }
+    .turn-indicator {
+      font-size: 0.65rem; font-weight: 700;
+      background: rgba(255,213,79,0.25); color: #ffd54f;
+      border: 1px solid rgba(255,213,79,0.4);
+      padding: 2px 8px; border-radius: 999px;
+      margin-left: 6px; display: none;
+    }
+    .turn-indicator.show { display: inline-block; }
+
+    .hand-cards {
+      display: flex; flex-wrap: wrap; gap: 3px;
+      justify-content: center; align-items: flex-end;
+    }
+    .ai-player-area .hand-cards { max-height: 52px; overflow: hidden; }
+
+    #center-area {
+      grid-area: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px;
+      min-height: 100px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 14px; padding: 10px;
+      flex-shrink: 0;
+    }
+    .pile-row {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .uno-pile {
+      width: 52px; height: 72px;
+      border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      position: relative;
+      cursor: pointer;
+    }
+    .uno-pile.draw-pile {
+      background: linear-gradient(145deg, #1565c0, #0d47a1);
+      cursor: pointer;
+    }
+    .uno-pile.draw-pile:hover { transform: scale(1.03); }
+    .uno-pile.discard-pile {
+      min-width: 52px;
+      background: #fff;
+      color: #333;
+    }
+    .pile-label { font-size: 0.65rem; color: #90caf9; margin-top: 4px; }
+    .current-color-badge {
+      position: absolute;
+      bottom: -6px; right: -6px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+
+    #player-area-0 {
+      grid-area: hand0;
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,0,0,0.4);
+      border-radius: 12px; padding: 8px 10px;
+      min-height: 0; overflow: hidden;
+    }
+    #player-area-0 .hand-cards {
+      flex-wrap: wrap; gap: 4px;
+      justify-content: center; max-height: 130px;
+      overflow-y: auto; padding: 4px;
+    }
+
+    #action-bar {
+      grid-area: act;
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      padding: 8px 18px; border-radius: 10px; border: none;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: transform .1s, opacity .15s, box-shadow .15s;
+    }
+    .btn-action:active { transform: scale(0.96); }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-draw {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      color: #fff; box-shadow: 0 3px 12px rgba(255,152,0,.45);
+    }
+    .btn-draw:not(:disabled):hover { background: linear-gradient(135deg, #ffa726, #ff9800); }
+    .btn-play {
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      color: #fff; box-shadow: 0 3px 12px rgba(76,175,80,.45);
+      min-width: 80px;
+    }
+    .btn-play:not(:disabled):hover { background: linear-gradient(135deg, #66bb6a, #4caf50); }
+    .btn-wild-color {
+      padding: 6px 12px; border-radius: 8px; border: 2px solid #fff;
+      font-size: 1rem; cursor: pointer;
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-wild-color:active { transform: scale(0.95); }
+    .btn-wild-color.red { background: #e53935; color: #fff; }
+    .btn-wild-color.yellow { background: #fdd835; color: #333; }
+    .btn-wild-color.green { background: #43a047; color: #fff; }
+    .btn-wild-color.blue { background: #1e88e5; color: #fff; }
+    .wild-picker-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+    /* UNO 牌面 */
+    .uno-card {
+      width: 40px; height: 56px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,.35);
+      cursor: pointer;
+      position: relative;
+      transition: transform .15s, box-shadow .15s;
+      flex-shrink: 0;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 3px 4px;
+      font-weight: 800;
+      font-size: 0.75rem;
+    }
+    .uno-card:hover { transform: translateY(-5px); box-shadow: 0 5px 14px rgba(0,0,0,.4); }
+    .uno-card.selected {
+      transform: translateY(-12px) !important;
+      box-shadow: 0 6px 18px rgba(255,213,79,.5) !important;
+      border-color: #ffd54f;
+      z-index: 5;
+    }
+    .uno-card.card-red { background: linear-gradient(145deg, #ef5350, #c62828); color: #fff; }
+    .uno-card.card-yellow { background: linear-gradient(145deg, #ffee58, #f9a825); color: #1a1a1a; }
+    .uno-card.card-green { background: linear-gradient(145deg, #66bb6a, #2e7d32); color: #fff; }
+    .uno-card.card-blue { background: linear-gradient(145deg, #42a5f5, #1565c0); color: #fff; }
+    .uno-card.card-wild {
+      background: linear-gradient(145deg, #78909c, #455a64);
+      color: #fff;
+    }
+    .uno-card .card-corner { line-height: 1; }
+    .uno-card .card-mid {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.1rem; text-align: center;
+    }
+    .uno-card.card-back {
+      background: linear-gradient(145deg, #1565c0, #0d47a1);
+      cursor: default;
+      color: rgba(255,255,255,0.3);
+    }
+    .uno-card.card-back:hover { transform: none; }
+    .uno-card.small { width: 28px; height: 40px; font-size: 0.55rem; padding: 2px; }
+    .uno-card.small .card-mid { font-size: 0.75rem; }
+
+    #welcome-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(160deg, #1a237e 0%, #0d47a1 50%, #01579b 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .welcome-panel {
+      text-align: center; padding: 28px 36px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 18px; border: 1px solid rgba(255,213,79,.3);
+      max-width: 360px; width: 90vw;
+    }
+    .welcome-title { font-size: 2rem; font-weight: 900; color: #ffd54f; margin-bottom: 6px; letter-spacing: 0.05em; }
+    .welcome-subtitle { font-size: 0.86rem; color: #90caf9; margin-bottom: 18px; }
+    .welcome-rules {
+      background: rgba(255,255,255,.06); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 18px;
+      text-align: left;
+    }
+    .welcome-rules h3 { font-size: 0.8rem; color: #ffd54f; margin-bottom: 6px; }
+    .welcome-rules ul { list-style: none; }
+    .welcome-rules li { font-size: 0.76rem; color: #bbdefb; padding: 2px 0; }
+    .welcome-rules li::before { content: '• '; color: #90caf9; }
+    .btn-start {
+      display: block; width: 100%;
+      padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      color: #fff; font-size: 1.05rem; font-weight: 800;
+      cursor: pointer; letter-spacing: .05em;
+      box-shadow: 0 4px 16px rgba(255,152,0,.5);
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-start:hover { box-shadow: 0 6px 22px rgba(255,152,0,.6); }
+    .btn-start:active { transform: scale(0.98); }
+    .welcome-link { margin-top: 14px; }
+    .welcome-link a { color: #90caf9; font-size: 0.8rem; text-decoration: none; }
+    .welcome-link a:hover { color: #ffd54f; }
+
+    .toast-msg {
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,.85); color: #fff;
+      padding: 8px 18px; border-radius: 20px;
+      font-size: 0.88rem; pointer-events: none;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      z-index: 500;
+    }
+    .toast-msg.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    #gameover-ui {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      align-items: center; justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+    }
+    .gameover-panel {
+      background: linear-gradient(145deg, #0d47a1, #0a2d6b);
+      border: 1px solid rgba(255,213,79,.35);
+      border-radius: 16px; padding: 28px 36px;
+      min-width: 280px; max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .gameover-result { font-size: 1.6rem; font-weight: 900; margin-bottom: 12px; color: #ffd54f; }
+    .gameover-btns { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+    .btn-gameover {
+      padding: 10px 22px; border-radius: 10px; border: none;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: transform .1s;
+    }
+    .btn-gameover:active { transform: scale(0.96); }
+    .btn-replay { background: linear-gradient(135deg, #4caf50, #2e7d32); color: #fff; }
+    .btn-home { background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid rgba(255,255,255,.2); }
+
+    @media (max-width: 480px) {
+      .uno-card { width: 34px; height: 48px; font-size: 0.65rem; }
+      .uno-card .card-mid { font-size: 0.95rem; }
+      .uno-pile { width: 44px; height: 62px; font-size: 1.4rem; }
+    }
+    @media (max-height: 600px) {
+      #player-area-0 .hand-cards { max-height: 100px; }
+      .uno-card { width: 32px; height: 44px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="welcome-screen">
+  <div class="welcome-panel">
+    <div class="welcome-title">UNO</div>
+    <div class="welcome-subtitle">匹配颜色或数字，先出完手牌者胜</div>
+    <div class="welcome-rules">
+      <h3>📜 简要规则</h3>
+      <ul>
+        <li>四人游戏，每人 7 张牌</li>
+        <li>与牌堆顶同颜色或同数字/符号即可出牌</li>
+        <li>数字 0–9；功能牌：跳过、反转、+2</li>
+        <li>万能牌、+4 万能牌（可指定下家颜色）</li>
+        <li>无法出牌时须摸一张；仍无法出则跳过</li>
+        <li>先出完手牌者获胜</li>
+      </ul>
+    </div>
+    <button class="btn-start" id="btn-start-game">开始游戏</button>
+    <div class="welcome-link">
+      <a href="index.html">← 返回游戏大厅</a>
+    </div>
+  </div>
+</div>
+
+<div id="game-root" style="display:none;">
+  <div class="top-bar">
+    <div>
+      <span class="top-bar-title">UNO</span>
+      <span class="top-bar-sub">单机版</span>
+    </div>
+    <div class="top-bar-right">
+      <button class="btn-top" id="btn-new-game">🔄 新局</button>
+      <a href="index.html" class="btn-top">🏠 大厅</a>
+    </div>
+  </div>
+
+  <div id="game-table">
+    <div id="player-area-1" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🤖</span>
+        <span class="player-name">人机1</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">7张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="player-area-2" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🦊</span>
+        <span class="player-name">人机2</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">7张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="center-area">
+      <div class="pile-row">
+        <div>
+          <div id="draw-pile" class="uno-pile draw-pile" title="摸牌">🂠</div>
+          <div class="pile-label">牌堆</div>
+        </div>
+        <div>
+          <div id="discard-pile" class="uno-pile discard-pile"></div>
+          <div class="pile-label">弃牌</div>
+        </div>
+      </div>
+      <div id="wild-picker" class="wild-picker-row" style="display:none;">
+        <span style="font-size:0.8rem;color:#bbb;">选颜色：</span>
+        <button class="btn-wild-color red" type="button" data-color="red">红</button>
+        <button class="btn-wild-color yellow" type="button" data-color="yellow">黄</button>
+        <button class="btn-wild-color green" type="button" data-color="green">绿</button>
+        <button class="btn-wild-color blue" type="button" data-color="blue">蓝</button>
+      </div>
+    </div>
+
+    <div id="player-area-3" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🐉</span>
+        <span class="player-name">人机3</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">7张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="player-area-0">
+      <div class="player-info-row">
+        <span class="player-avatar">😀</span>
+        <span class="player-name">你</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="action-bar">
+      <button class="btn-action btn-draw" id="btn-draw">摸牌</button>
+      <button class="btn-action btn-play" id="btn-play" disabled>出牌</button>
+    </div>
+  </div>
+</div>
+
+<div id="gameover-ui">
+  <div class="gameover-panel">
+    <div class="gameover-result" id="gameover-result">游戏结束</div>
+    <p class="gameover-detail-row" id="gameover-detail-msg" style="color:#bbdefb;margin:8px 0;"></p>
+    <div class="gameover-btns">
+      <button class="btn-gameover btn-replay" id="btn-replay">再来一局</button>
+      <button class="btn-gameover btn-home" onclick="location.href='index.html'">回大厅</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast-msg"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+// UNO — 游戏逻辑
+// ═══════════════════════════════════════════════════════════════
+
+const COLORS = ['red', 'yellow', 'green', 'blue'];
+const COLOR_LABEL = { red: '红', yellow: '黄', green: '绿', blue: '蓝' };
+const COLOR_CLASS = { red: 'card-red', yellow: 'card-yellow', green: 'card-green', blue: 'card-blue' };
+
+function createDeck() {
+  const deck = [];
+  for (const color of COLORS) {
+    deck.push({ color, type: 'number', value: 0, id: color + '_0' });
+    for (let n = 1; n <= 9; n++) {
+      deck.push({ color, type: 'number', value: n, id: color + '_' + n });
+      deck.push({ color, type: 'number', value: n, id: color + '_' + n + '_2' });
+    }
+    for (let i = 0; i < 2; i++) {
+      deck.push({ color, type: 'skip', id: color + '_skip' + i });
+      deck.push({ color, type: 'reverse', id: color + '_reverse' + i });
+      deck.push({ color, type: 'draw2', id: color + '_draw2' + i });
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    deck.push({ color: 'wild', type: 'wild', id: 'wild_' + i });
+    deck.push({ color: 'wild', type: 'wild4', id: 'wild4_' + i });
+  }
+  return deck;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function cardLabel(card) {
+  if (card.type === 'number') return String(card.value);
+  if (card.type === 'skip') return '⊘';
+  if (card.type === 'reverse') return '⇄';
+  if (card.type === 'draw2') return '+2';
+  if (card.type === 'wild') return '★';
+  if (card.type === 'wild4') return '+4';
+  return '?';
+}
+
+function cardDisplayColor(card) {
+  if (card.color === 'wild') return 'wild';
+  return card.color;
+}
+
+const G = {
+  phase: 'idle',
+  direction: 1,
+  currentPlayerIdx: 0,
+  players: [
+    { id: 0, name: '你', type: 'human', cards: [] },
+    { id: 1, name: '人机1', type: 'ai', cards: [] },
+    { id: 2, name: '人机2', type: 'ai', cards: [] },
+    { id: 3, name: '人机3', type: 'ai', cards: [] }
+  ],
+  drawPile: [],
+  discardPile: [],
+  currentColor: null,
+  selectedCard: null,
+  pendingWildColor: null,
+  drawStack: 0
+};
+
+function canPlay(card, topCard, currentColor) {
+  const effectiveColor = topCard.color === 'wild' ? currentColor : topCard.color;
+  if (card.color === 'wild') return true;
+  if (card.color === effectiveColor) return true;
+  if (card.type === 'number' && topCard.type === 'number' && card.value === topCard.value) return true;
+  if (card.type !== 'number' && topCard.type === card.type) return true;
+  return false;
+}
+
+function getPlayable(hand, topCard, currentColor) {
+  return hand.filter(c => canPlay(c, topCard, currentColor));
+}
+
+function nextPlayer() {
+  G.currentPlayerIdx = (G.currentPlayerIdx + G.direction + 4) % 4;
+  return G.currentPlayerIdx;
+}
+
+function initGame() {
+  const deck = shuffle(createDeck());
+  G.drawPile = deck;
+  G.discardPile = [];
+  G.direction = 1;
+  G.drawStack = 0;
+  G.pendingWildColor = null;
+
+  for (let i = 0; i < 4; i++) {
+    G.players[i].cards = G.drawPile.splice(0, 7);
+  }
+
+  let top = G.drawPile.pop();
+  while (top.type !== 'number') {
+    G.drawPile.unshift(top);
+    top = G.drawPile.pop();
+  }
+  G.discardPile.push(top);
+  G.currentColor = top.color;
+  G.currentPlayerIdx = 0;
+  G.selectedCard = null;
+  G.phase = 'playing';
+
+  refillDrawFromDiscard();
+  render();
+  document.getElementById('wild-picker').style.display = 'none';
+  document.getElementById('gameover-ui').style.display = 'none';
+  updateActionBar();
+  if (typeof showMsg === 'function') showMsg('轮到你出牌', 1000);
+}
+
+function refillDrawFromDiscard() {
+  if (G.drawPile.length > 0) return;
+  const top = G.discardPile.pop();
+  if (!top) return;
+  G.drawPile = shuffle(G.discardPile);
+  G.discardPile = [top];
+}
+
+function playCard(playerIdx, card, wildColor) {
+  const hand = G.players[playerIdx].cards;
+  const idx = hand.findIndex(c => c.id === card.id);
+  if (idx === -1) return false;
+
+  const topCard = G.discardPile[G.discardPile.length - 1];
+  const curColor = G.currentColor;
+  if (!canPlay(card, topCard, curColor)) return false;
+
+  hand.splice(idx, 1);
+  G.discardPile.push(card);
+
+  if (card.color === 'wild' || card.type === 'wild4') {
+    G.currentColor = wildColor || COLORS[Math.floor(Math.random() * 4)];
+  } else {
+    G.currentColor = card.color;
+  }
+
+  if (card.type === 'reverse') G.direction = -G.direction;
+  if (card.type === 'skip') nextPlayer();
+  if (card.type === 'draw2') {
+    G.drawStack = (G.drawStack || 0) + 2;
+    nextPlayer();
+  }
+  if (card.type === 'wild4') {
+    G.drawStack = (G.drawStack || 0) + 4;
+    nextPlayer();
+  }
+
+  G.currentPlayerIdx = nextPlayer();
+  return true;
+}
+
+function applyDrawStack(targetIdx) {
+  const n = G.drawStack || 0;
+  G.drawStack = 0;
+  if (n === 0) return;
+  refillDrawFromDiscard();
+  for (let i = 0; i < n && G.drawPile.length > 0; i++) {
+    G.players[targetIdx].cards.push(G.drawPile.pop());
+    refillDrawFromDiscard();
+  }
+}
+
+function render() {
+  for (let i = 0; i < 4; i++) {
+    const area = document.getElementById('player-area-' + i);
+    if (!area) continue;
+    const nameEl = area.querySelector('.player-name');
+    const countEl = area.querySelector('.card-count');
+    const handEl = area.querySelector('.hand-cards');
+    if (nameEl) nameEl.classList.toggle('is-current', G.currentPlayerIdx === i);
+    if (countEl) countEl.textContent = G.players[i].cards.length + '张';
+    area.querySelectorAll('.turn-indicator').forEach(el => el.classList.toggle('show', G.currentPlayerIdx === i));
+
+    handEl.innerHTML = '';
+    const cards = G.players[i].cards;
+    const isHuman = i === 0;
+    cards.forEach((c, idx) => {
+      const div = document.createElement('div');
+      const colorClass = cardDisplayColor(c) === 'wild' ? 'card-wild' : COLOR_CLASS[cardDisplayColor(c)];
+      div.className = 'uno-card ' + colorClass + (isHuman ? '' : ' small card-back');
+      div.dataset.playerIdx = String(i);
+      div.dataset.cardIdx = String(idx);
+      if (isHuman) {
+        div.innerHTML = '<span class="card-corner">' + cardLabel(c) + '</span><span class="card-mid">' + cardLabel(c) + '</span><span class="card-corner" style="text-align:right;align-self:flex-end;">' + cardLabel(c) + '</span>';
+        div.addEventListener('click', onHumanCardClick);
+        if (G.selectedCard && G.selectedCard.id === c.id) div.classList.add('selected');
+      }
+      handEl.appendChild(div);
+    });
+  }
+
+  const discardEl = document.getElementById('discard-pile');
+  if (discardEl) {
+    const top = G.discardPile[G.discardPile.length - 1];
+    if (top) {
+      const colorClass = cardDisplayColor(top) === 'wild' ? 'card-wild' : COLOR_CLASS[cardDisplayColor(top)];
+      discardEl.className = 'uno-pile discard-pile uno-card ' + colorClass;
+      discardEl.innerHTML = '<span class="card-corner">' + cardLabel(top) + '</span><span class="card-mid">' + cardLabel(top) + '</span>';
+      discardEl.style.background = '';
+    } else {
+      discardEl.className = 'uno-pile discard-pile';
+      discardEl.innerHTML = '';
+    }
+  }
+
+  const drawEl = document.getElementById('draw-pile');
+  if (drawEl) drawEl.textContent = G.drawPile.length ? '🂠' : '—';
+}
+
+function updateActionBar() {
+  const isMyTurn = G.phase === 'playing' && G.currentPlayerIdx === 0;
+  const btnDraw = document.getElementById('btn-draw');
+  const btnPlay = document.getElementById('btn-play');
+  if (btnDraw) btnDraw.disabled = !isMyTurn;
+  const topCard = G.discardPile[G.discardPile.length - 1];
+  const playable = topCard ? getPlayable(G.players[0].cards, topCard, G.currentColor) : [];
+  const canPlaySelected = G.selectedCard && playable.some(c => c.id === G.selectedCard.id);
+  if (btnPlay) btnPlay.disabled = !isMyTurn || !canPlaySelected;
+}
+
+function onHumanCardClick(e) {
+  if (G.phase !== 'playing' || G.currentPlayerIdx !== 0) return;
+  const el = e.currentTarget;
+  const idx = parseInt(el.dataset.cardIdx, 10);
+  const card = G.players[0].cards[idx];
+  const topCard = G.discardPile[G.discardPile.length - 1];
+  if (!canPlay(card, topCard, G.currentColor)) return;
+  if (G.selectedCard && G.selectedCard.id === card.id) {
+    G.selectedCard = null;
+  } else {
+    G.selectedCard = card;
+  }
+  render();
+  updateActionBar();
+}
+
+function humanPlay() {
+  if (G.phase !== 'playing' || G.currentPlayerIdx !== 0 || !G.selectedCard) return;
+  const card = G.selectedCard;
+  if (card.color === 'wild' || card.type === 'wild4') {
+    document.getElementById('wild-picker').style.display = 'flex';
+    window._pendingPlayCard = card;
+    return;
+  }
+  doHumanPlay(card, null);
+}
+
+function doHumanPlay(card, wildColor) {
+  if (!playCard(0, card, wildColor)) return;
+  G.selectedCard = null;
+  document.getElementById('wild-picker').style.display = 'none';
+  window._pendingPlayCard = null;
+  render();
+  checkWin();
+  if (G.phase !== 'playing') return;
+  updateActionBar();
+  if (G.currentPlayerIdx === 0) {
+    if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+    return;
+  }
+  setTimeout(aiTurn, 800);
+}
+
+function humanDraw() {
+  if (G.phase !== 'playing' || G.currentPlayerIdx !== 0) return;
+  if (G.drawStack > 0) {
+    applyDrawStack(0);
+    if (typeof showMsg === 'function') showMsg('你摸牌并跳过', 1200);
+    G.currentPlayerIdx = nextPlayer();
+    render();
+    updateActionBar();
+    if (G.currentPlayerIdx === 0) {
+      if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+      return;
+    }
+    setTimeout(aiTurn, 600);
+    return;
+  }
+  refillDrawFromDiscard();
+  if (G.drawPile.length === 0) return;
+  const card = G.drawPile.pop();
+  G.players[0].cards.push(card);
+  G.currentPlayerIdx = nextPlayer();
+  render();
+  updateActionBar();
+  if (G.currentPlayerIdx === 0) {
+    if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+    return;
+  }
+  setTimeout(aiTurn, 600);
+}
+
+function aiTurn() {
+  if (G.phase !== 'playing') return;
+  const idx = G.currentPlayerIdx;
+  if (G.players[idx].type !== 'ai') return;
+
+  const topCard = G.discardPile[G.discardPile.length - 1];
+  const hand = G.players[idx].cards;
+  const playable = getPlayable(hand, topCard, G.currentColor);
+
+  if (G.drawStack > 0) {
+    const canStack = playable.filter(c => c.type === 'draw2' || c.type === 'wild4');
+    if (canStack.length > 0) {
+      const card = canStack[0];
+      const wildColor = (card.color === 'wild') ? COLORS[Math.floor(Math.random() * 4)] : null;
+      playCard(idx, card, wildColor);
+      render();
+      checkWin();
+      if (G.phase !== 'playing') return;
+      setTimeout(aiTurn, 700);
+      return;
+    }
+    applyDrawStack(idx);
+    if (typeof showMsg === 'function') showMsg('人机' + idx + ' 摸牌', 600);
+    G.currentPlayerIdx = nextPlayer();
+    render();
+    updateActionBar();
+    if (G.currentPlayerIdx === 0) {
+      if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+      return;
+    }
+    setTimeout(aiTurn, 700);
+    return;
+  }
+
+  if (playable.length > 0) {
+    const card = playable[Math.floor(Math.random() * playable.length)];
+    const wildColor = (card.color === 'wild' || card.type === 'wild4') ? COLORS[Math.floor(Math.random() * 4)] : null;
+    playCard(idx, card, wildColor);
+    render();
+    checkWin();
+    if (G.phase !== 'playing') return;
+    updateActionBar();
+    if (G.currentPlayerIdx === 0) {
+      if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+      return;
+    }
+    setTimeout(aiTurn, 700);
+    return;
+  }
+
+  refillDrawFromDiscard();
+  if (G.drawPile.length > 0) {
+    const drawn = G.drawPile.pop();
+    G.players[idx].cards.push(drawn);
+    if (canPlay(drawn, topCard, G.currentColor)) {
+      playCard(idx, drawn, drawn.color === 'wild' || drawn.type === 'wild4' ? COLORS[0] : null);
+      render();
+      checkWin();
+      if (G.phase !== 'playing') return;
+    }
+  }
+  G.currentPlayerIdx = nextPlayer();
+  render();
+  updateActionBar();
+  if (G.currentPlayerIdx === 0) {
+    if (typeof showMsg === 'function') showMsg('轮到你出牌', 800);
+    return;
+  }
+  setTimeout(aiTurn, 700);
+}
+
+function checkWin() {
+  for (let i = 0; i < 4; i++) {
+    if (G.players[i].cards.length === 0) {
+      G.phase = 'ended';
+      const name = i === 0 ? '你' : G.players[i].name;
+      document.getElementById('gameover-result').textContent = name + ' 获胜！';
+      document.getElementById('gameover-detail-msg').textContent = '先出完手牌。';
+      document.getElementById('gameover-ui').style.display = 'flex';
+      return;
+    }
+  }
+}
+
+function showMsg(text, duration) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(showMsg._t);
+  showMsg._t = setTimeout(function() { el.classList.remove('show'); }, duration || 1200);
+}
+
+document.getElementById('btn-start-game').addEventListener('click', function() {
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('game-root').style.display = 'flex';
+  initGame();
+});
+
+document.getElementById('btn-new-game').addEventListener('click', function() {
+  document.getElementById('gameover-ui').style.display = 'none';
+  initGame();
+});
+
+document.getElementById('btn-replay').addEventListener('click', function() {
+  document.getElementById('gameover-ui').style.display = 'none';
+  initGame();
+});
+
+document.getElementById('btn-draw').addEventListener('click', humanDraw);
+
+document.getElementById('btn-play').addEventListener('click', humanPlay);
+
+document.querySelectorAll('#wild-picker .btn-wild-color').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const card = window._pendingPlayCard;
+    if (!card) return;
+    const color = btn.dataset.color;
+    doHumanPlay(card, color);
+    if (G.phase === 'playing' && G.currentPlayerIdx !== 0) setTimeout(aiTurn, 700);
+  });
+});
+
+document.getElementById('draw-pile').addEventListener('click', function() {
+  if (G.phase === 'playing' && G.currentPlayerIdx === 0) {
+    document.getElementById('btn-draw').click();
+  }
+});
+</script>
+</body>
+</html>

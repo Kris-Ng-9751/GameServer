@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<!--
+  ══════════════════════════════════════════════════════════════
+  bigtwo.html — 锄大地（Big Two / 大老二）单机版
+  四人、52张牌、持 3♦ 者先出，先出完者胜
+  引用：bigtwo.js
+  ══════════════════════════════════════════════════════════════
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>锄大地 — 单机版</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; width: 100%;
+      font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+      background: radial-gradient(ellipse at 40% 0%, #1a4d2e 0%, #0d2d1a 55%, #061a10 100%);
+      color: #fff;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #game-root {
+      width: 100vw; height: 100dvh;
+      display: flex; flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.4);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .top-bar-title { font-size: 1.05rem; font-weight: 700; color: #8fbc8f; letter-spacing: 0.05em; }
+    .top-bar-sub { font-size: 0.7rem; color: #888; margin-left: 6px; }
+    .top-bar-right { display: flex; gap: 8px; align-items: center; }
+    .btn-top {
+      padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08); color: #fff; cursor: pointer;
+      font-size: 0.8rem; text-decoration: none; transition: background .15s;
+    }
+    .btn-top:hover { background: rgba(255,255,255,0.18); }
+
+    #game-table {
+      flex: 1; display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      grid-template-columns: 1fr auto 1fr;
+      grid-template-areas:
+        "top1  top1  top1"
+        "left2 center right3"
+        "hand0 hand0 hand0"
+        "act   act   act";
+      gap: 6px; padding: 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ai-player-area {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px; padding: 6px 10px;
+      min-width: 0; overflow: hidden;
+    }
+    #player-area-1 { grid-area: top1; }
+    #player-area-2 { grid-area: left2; justify-self: end; }
+    #player-area-3 { grid-area: right3; justify-self: start; }
+
+    .player-info-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .player-avatar { font-size: 1.2rem; }
+    .player-name { font-size: 0.85rem; font-weight: 600; color: #c8e6c8; }
+    .player-name.is-current { color: #ffd54f; text-shadow: 0 0 8px rgba(255,213,79,0.6); }
+    .card-count { font-size: 0.7rem; color: #888; }
+    .turn-indicator {
+      font-size: 0.65rem; font-weight: 700;
+      background: rgba(255,213,79,0.25); color: #ffd54f;
+      border: 1px solid rgba(255,213,79,0.4);
+      padding: 2px 8px; border-radius: 999px;
+      margin-left: 6px; display: none;
+    }
+
+    .hand-cards {
+      display: flex; flex-wrap: wrap; gap: 3px;
+      justify-content: center; align-items: flex-end;
+    }
+    .ai-player-area .hand-cards { max-height: 56px; overflow: hidden; }
+
+    #center-area {
+      grid-area: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px;
+      min-height: 100px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px; padding: 8px;
+      flex-shrink: 0;
+    }
+    #last-play-center {
+      display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-items: flex-end;
+      min-height: 72px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .play-type-label { font-size: 0.68rem; color: #8fbc8f; margin-top: 4px; font-weight: 600; }
+    .pass-label { font-size: 0.8rem; color: #666; font-style: italic; padding: 6px 0; }
+
+    #player-area-0 {
+      grid-area: hand0;
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px; padding: 8px 10px;
+      min-height: 0; overflow: hidden;
+    }
+    #player-area-0 .hand-cards {
+      flex-wrap: wrap; gap: 4px;
+      justify-content: center; max-height: 120px;
+      overflow-y: auto; padding: 4px;
+    }
+
+    #action-bar {
+      grid-area: act;
+      display: none; align-items: center; justify-content: center;
+      gap: 8px; padding: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      padding: 8px 16px; border-radius: 10px; border: none;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: transform .1s, opacity .15s, box-shadow .15s;
+    }
+    .btn-action:active { transform: scale(0.96); }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-play {
+      background: linear-gradient(135deg, #2e7d32, #1b5e20);
+      color: #fff; box-shadow: 0 3px 12px rgba(46,125,50,.45);
+      min-width: 76px;
+    }
+    .btn-play.btn-active { box-shadow: 0 3px 16px rgba(46,125,50,.7); }
+    .btn-play:not(:disabled):hover { background: linear-gradient(135deg, #388e3c, #2e7d32); }
+    .btn-pass {
+      background: rgba(255,255,255,0.12); color: #ccc;
+      border: 1px solid rgba(255,255,255,0.2); min-width: 64px;
+    }
+    .btn-pass:not(:disabled):hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .btn-select-all, .btn-deselect {
+      background: rgba(143,188,143,.2); color: #8fbc8f;
+      border: 1px solid rgba(143,188,143,.4);
+      font-size: 0.8rem; padding: 6px 12px;
+    }
+    .btn-deselect { background: rgba(255,255,255,.08); color: #999; border-color: rgba(255,255,255,.15); }
+
+    .card {
+      width: 38px; height: 54px;
+      background: #fff;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      cursor: pointer;
+      position: relative;
+      transition: transform .15s, box-shadow .15s;
+      flex-shrink: 0;
+      display: flex; flex-direction: column; justify-content: space-between;
+      color: #222;
+      font-family: system-ui, sans-serif;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+    .card.selected {
+      transform: translateY(-10px) !important;
+      box-shadow: 0 6px 18px rgba(255,213,79,.5) !important;
+      border-color: #ffd54f;
+      background: #fffde7;
+    }
+    .card.card-red { color: #c62828; }
+    .card.card-back {
+      background: linear-gradient(135deg, #2e7d32 30%, #1b5e20 100%);
+      border-color: #1b5e20;
+      cursor: default;
+    }
+    .card.card-back:hover { transform: none; }
+    .card-top, .card-bot {
+      display: flex; flex-direction: column; align-items: flex-start;
+      padding: 1px 3px; line-height: 1;
+    }
+    .card-bot { align-items: flex-end; transform: rotate(180deg); }
+    .card-val { font-size: 0.7rem; font-weight: 800; }
+    .card-suit { font-size: 0.5rem; }
+    .card-mid {
+      text-align: center; font-size: 1rem;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .card-back-pattern {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.4rem; opacity: 0.4;
+    }
+
+    #welcome-screen {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 40% 0%, #1a4d2e 0%, #0d2d1a 60%, #061a10 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .welcome-panel {
+      text-align: center; padding: 32px 40px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 18px; border: 1px solid rgba(143,188,143,.35);
+      max-width: 380px; width: 90vw;
+    }
+    .welcome-title { font-size: 2.2rem; font-weight: 900; color: #8fbc8f; margin-bottom: 6px; }
+    .welcome-subtitle { font-size: 0.88rem; color: #aaa; margin-bottom: 20px; }
+    .welcome-rules {
+      background: rgba(255,255,255,.06); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+      text-align: left;
+    }
+    .welcome-rules h3 { font-size: 0.82rem; color: #8fbc8f; margin-bottom: 8px; }
+    .welcome-rules ul { list-style: none; }
+    .welcome-rules li { font-size: 0.78rem; color: #ccc; padding: 2px 0; }
+    .welcome-rules li::before { content: '• '; color: #8fbc8f; }
+    .btn-start {
+      display: block; width: 100%;
+      padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #2e7d32, #1b5e20);
+      color: #fff; font-size: 1.05rem; font-weight: 800;
+      cursor: pointer; letter-spacing: .05em;
+      box-shadow: 0 4px 16px rgba(46,125,50,.5);
+      transition: transform .1s, box-shadow .15s;
+    }
+    .btn-start:hover { box-shadow: 0 6px 22px rgba(46,125,50,.6); }
+    .btn-start:active { transform: scale(0.98); }
+    .welcome-link { margin-top: 14px; }
+    .welcome-link a { color: #888; font-size: 0.8rem; text-decoration: none; }
+    .welcome-link a:hover { color: #8fbc8f; }
+
+    .toast-msg {
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,.85); color: #fff;
+      padding: 8px 18px; border-radius: 20px;
+      font-size: 0.88rem; pointer-events: none;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      z-index: 500;
+    }
+    .toast-msg.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    #gameover-ui {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      align-items: center; justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+    }
+    .gameover-panel {
+      background: linear-gradient(135deg, #0d1f12, #061a0d);
+      border: 1px solid rgba(143,188,143,.35);
+      border-radius: 16px; padding: 28px 36px;
+      min-width: 280px; max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .gameover-result { font-size: 1.6rem; font-weight: 900; margin-bottom: 12px; color: #8fbc8f; }
+    .gameover-btns { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+    .btn-gameover {
+      padding: 10px 22px; border-radius: 10px; border: none;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: transform .1s;
+    }
+    .btn-gameover:active { transform: scale(0.96); }
+    .btn-replay { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: #fff; }
+    .btn-home { background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid rgba(255,255,255,.2); }
+
+    @media (max-width: 480px) {
+      .card { width: 32px; height: 46px; }
+      .card-val { font-size: 0.6rem; }
+      .card-mid { font-size: 0.85rem; }
+      .btn-action { padding: 6px 12px; font-size: 0.82rem; }
+      .welcome-title { font-size: 1.8rem; }
+    }
+    @media (max-height: 600px) {
+      #player-area-0 .hand-cards { max-height: 95px; }
+      .card { width: 34px; height: 48px; }
+    }
+
+    /* ── 欢迎屏玩家资料（与大厅同步） ── */
+    .bt-profile-row {
+      position: absolute;
+      top: 20px; left: 20px;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 10px 14px 10px 10px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,.45);
+      z-index: 10;
+    }
+    .bt-balance-info {
+      display: flex; flex-direction: column; align-items: flex-end;
+      border-left: 1px solid rgba(255,255,255,0.12);
+      padding-left: 10px;
+    }
+    .bt-balance-label-sm { font-size: 0.62rem; color: #7aa8a5; }
+    .bt-balance-val-sm { font-size: 0.88rem; font-weight: 800; color: #8fbc8f; }
+    .bt-balance-val-sm.overdraft { color: #e74c3c; }
+    .bt-avatar-btn {
+      position: relative;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a4d2e, #0d2d1a);
+      border: 2px solid #8fbc8f;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      font-size: 1.4rem; line-height: 1;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .bt-avatar-btn:hover { border-color: #a8d8a8; box-shadow: 0 0 12px rgba(143,188,143,.35); }
+    .bt-avatar-badge {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #8fbc8f; color: #0d2d1a;
+      font-size: 0.5rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #061a10;
+    }
+    .bt-name-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+    .bt-name-text { font-size: 0.92rem; font-weight: 800; color: #c8e6c8; }
+    .bt-rename-btn {
+      background: none; border: none; color: #888; font-size: 0.72rem;
+      cursor: pointer; padding: 2px 5px; border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    .bt-rename-btn:hover { color: #8fbc8f; background: rgba(143,188,143,.15); }
+    /* 底注选择 */
+    .bet-selector-wrap {
+      margin: 0 0 14px;
+      background: rgba(255,255,255,.05);
+      border-radius: 10px; padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .bet-selector-label { font-size: 0.72rem; color: #aaa; margin-bottom: 6px; text-align: left; }
+    .bet-selector-row { display: flex; gap: 6px; justify-content: center; }
+    .bet-opt {
+      flex: 1; padding: 6px 0; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.07); color: #ccc;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .bet-opt:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .bet-opt.active {
+      background: rgba(143,188,143,.25); border-color: #8fbc8f;
+      color: #8fbc8f;
+    }
+    /* 游戏顶栏赔率/余额 */
+    .bt-game-stats { display: flex; gap: 6px; align-items: center; }
+    .bt-stats-chip {
+      font-size: 0.72rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(0,0,0,.3); white-space: nowrap;
+    }
+    .bt-odds-chip { color: #8fbc8f; border-color: rgba(143,188,143,.35); }
+    .bt-balance-chip { color: #2ecc71; border-color: rgba(46,204,113,.3); }
+    .bt-balance-chip.overdraft { color: #e74c3c; border-color: rgba(231,76,60,.4); }
+    /* 头像选择器 */
+    .bt-avatar-picker {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 300;
+      backdrop-filter: blur(4px);
+    }
+    .bt-avatar-picker.hidden { display: none; }
+    .bt-ap-panel {
+      background: rgba(6,26,16,.96);
+      border: 1px solid rgba(143,188,143,.25);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      max-width: 280px; width: 88vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,.6);
+    }
+    .bt-ap-title { font-size: 0.88rem; font-weight: 700; color: #8fbc8f; margin-bottom: 12px; }
+    .bt-ap-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+    .bt-ap-opt {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 8px; font-size: 1.35rem;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, transform .1s;
+    }
+    .bt-ap-opt:hover { background: rgba(255,255,255,.14); border-color: #8fbc8f; transform: scale(1.06); }
+    .bt-ap-opt.selected { background: rgba(143,188,143,.2); border-color: #8fbc8f; }
+    .bt-ap-close {
+      padding: 6px 20px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: #ccc; font-size: 0.82rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .bt-ap-close:hover { background: rgba(255,255,255,.16); }
+    /* 结算显示 */
+    .gameover-detail-row { margin: 6px 0; font-size: 0.9rem; color: #bbb; }
+    .gameover-detail-row.highlight { color: #8fbc8f; font-weight: 700; }
+    .gameover-detail-row.negative { color: #e74c3c; }
+  </style>
+</head>
+<body>
+
+<!-- 头像选择器 -->
+<div id="bt-avatar-picker" class="bt-avatar-picker hidden">
+  <div class="bt-ap-panel">
+    <div class="bt-ap-title">选择头像</div>
+    <div class="bt-ap-grid">
+      <button class="bt-ap-opt" type="button" data-avatar="🀄">🀄</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🎴">🎴</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🃏">🃏</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🂮">🂮</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🦁">🦁</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🐯">🐯</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🐉">🐉</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🦊">🦊</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🐼">🐼</button>
+      <button class="bt-ap-opt" type="button" data-avatar="👑">👑</button>
+      <button class="bt-ap-opt" type="button" data-avatar="⭐">⭐</button>
+      <button class="bt-ap-opt" type="button" data-avatar="🎭">🎭</button>
+    </div>
+    <button class="bt-ap-close" type="button" id="bt-btn-ap-close">关闭</button>
+  </div>
+</div>
+
+<div id="welcome-screen">
+  <div class="bt-profile-row">
+    <div class="bt-avatar-btn" id="bt-btn-avatar" title="更换头像">
+      <span id="bt-avatar">🀄</span>
+      <span class="bt-avatar-badge">✎</span>
+    </div>
+    <div class="bt-name-wrap">
+      <span class="bt-name-text" id="bt-profile-name">玩家</span>
+      <button class="bt-rename-btn" type="button" id="bt-btn-rename">✎ 改名</button>
+    </div>
+    <div class="bt-balance-info">
+      <span class="bt-balance-label-sm">余额</span>
+      <span class="bt-balance-val-sm" id="bt-profile-balance">10,000</span>
+    </div>
+  </div>
+  <div class="welcome-panel">
+    <div class="welcome-title">🂮 锄大地</div>
+    <div class="welcome-subtitle">Big Two — 四人出牌，先出完者胜</div>
+    <div class="welcome-rules">
+      <h3>📜 简要规则</h3>
+      <ul>
+        <li>52张牌，四人各13张，无王牌</li>
+        <li>牌力：3 最小 → 2 最大；花色 ♦ &lt; ♣ &lt; ♥ &lt; ♠</li>
+        <li>持 3♦ 者先出牌，可出单张、对子、三张、顺子、同花、葫芦、四条、同花顺</li>
+        <li>下家需出同类型且更大的牌，或选择「不出」</li>
+        <li>连续三人不出，最后出牌者重新领出任意牌型</li>
+        <li>先出完手牌者获胜</li>
+      </ul>
+    </div>
+    <div class="bet-selector-wrap">
+      <div class="bet-selector-label">本局底注（获胜 +底注×3，失败 −底注）</div>
+      <div class="bet-selector-row">
+        <button class="bet-opt active" type="button" data-bet="10">10</button>
+        <button class="bet-opt" type="button" data-bet="50">50</button>
+        <button class="bet-opt" type="button" data-bet="100">100</button>
+        <button class="bet-opt" type="button" data-bet="500">500</button>
+      </div>
+    </div>
+    <button class="btn-start" id="btn-start-game">开始游戏</button>
+    <div class="welcome-link">
+      <a href="index.html">← 返回游戏大厅</a>
+    </div>
+  </div>
+</div>
+
+<div id="game-root" style="display:none;">
+  <div class="top-bar">
+    <div>
+      <span class="top-bar-title">🂮 锄大地</span>
+      <span class="top-bar-sub">单机版</span>
+    </div>
+    <div class="top-bar-right">
+      <div class="bt-game-stats">
+        <span class="bt-stats-chip bt-odds-chip">赔率 <span id="bt-odds-val">×1</span></span>
+        <span class="bt-stats-chip bt-balance-chip" id="bt-header-balance">💰 10,000</span>
+      </div>
+      <button class="btn-top" id="btn-new-game">🔄 新局</button>
+      <a href="index.html" class="btn-top">🏠 大厅</a>
+    </div>
+  </div>
+
+  <div id="game-table">
+    <div id="player-area-1" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🤖</span>
+        <span class="player-name">人机1</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">13张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="player-area-2" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🦊</span>
+        <span class="player-name">人机2</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">13张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="center-area">
+      <div id="last-play-center"></div>
+    </div>
+
+    <div id="player-area-3" class="ai-player-area">
+      <div class="player-info-row">
+        <span class="player-avatar">🐉</span>
+        <span class="player-name">人机3</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="card-count">13张</div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="player-area-0">
+      <div class="player-info-row">
+        <span class="player-avatar" id="bt-game-avatar">😀</span>
+        <span class="player-name" id="bt-game-name">你</span>
+        <span class="turn-indicator">出牌</span>
+      </div>
+      <div class="hand-cards"></div>
+    </div>
+
+    <div id="action-bar">
+      <button class="btn-action btn-deselect" id="btn-deselect">取消</button>
+      <button class="btn-action btn-select-all" id="btn-select-all">全选</button>
+      <button class="btn-action btn-pass" id="btn-pass">不出</button>
+      <button class="btn-action btn-play" id="btn-play" disabled>出牌</button>
+    </div>
+  </div>
+</div>
+
+<div id="gameover-ui">
+  <div class="gameover-panel">
+    <div class="gameover-result" id="gameover-result">游戏结束</div>
+    <div id="gameover-detail">
+      <p class="gameover-detail-row" id="gameover-detail-msg"></p>
+      <p class="gameover-detail-row highlight" id="gameover-delta"></p>
+      <p class="gameover-detail-row" id="gameover-balance"></p>
+    </div>
+    <div class="gameover-btns">
+      <button class="btn-gameover btn-replay" id="btn-replay">再来一局</button>
+      <button class="btn-gameover btn-home" onclick="location.href='index.html'">回大厅</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast-msg"></div>
+
+<script src="bigtwo.js"></script>
+<script>
+(function() {
+  // 与大厅/斗地主共用 localStorage 键
+  var BT_KEYS = { name: 'mj-player-name', avatar: 'mj-player-avatar', balance: 'mj-player-balance' };
+  var BT_DEFAULT_NAME = '玩家';
+  var BT_DEFAULT_AVATAR = '🀄';
+  var BT_DEFAULT_BAL = 10000;
+
+  var _betStake = 10;
+
+  function getBalance() {
+    var v = parseInt(localStorage.getItem(BT_KEYS.balance) || BT_DEFAULT_BAL, 10);
+    return isNaN(v) ? BT_DEFAULT_BAL : v;
+  }
+  function saveBalance(val) {
+    localStorage.setItem(BT_KEYS.balance, String(val));
+  }
+
+  function loadProfile() {
+    var name = localStorage.getItem(BT_KEYS.name) || BT_DEFAULT_NAME;
+    var avatar = localStorage.getItem(BT_KEYS.avatar) || BT_DEFAULT_AVATAR;
+    var bal = getBalance();
+    document.getElementById('bt-profile-name').textContent = name;
+    document.getElementById('bt-avatar').textContent = avatar;
+    var balEl = document.getElementById('bt-profile-balance');
+    balEl.textContent = bal.toLocaleString();
+    balEl.className = 'bt-balance-val-sm' + (bal < 0 ? ' overdraft' : '');
+    document.querySelectorAll('.bt-ap-opt').forEach(function(b) {
+      b.classList.toggle('selected', b.dataset.avatar === avatar);
+    });
+  }
+
+  function applyProfileToGame() {
+    var name = localStorage.getItem(BT_KEYS.name) || BT_DEFAULT_NAME;
+    var avatar = localStorage.getItem(BT_KEYS.avatar) || BT_DEFAULT_AVATAR;
+    G.players[0].name = name;
+    var nameEl = document.getElementById('bt-game-name');
+    var avatarEl = document.getElementById('bt-game-avatar');
+    if (nameEl) nameEl.textContent = name;
+    if (avatarEl) avatarEl.textContent = avatar;
+  }
+
+  function updateHeaderBalance() {
+    var bal = getBalance();
+    var chip = document.getElementById('bt-header-balance');
+    if (chip) {
+      chip.textContent = '💰 ' + bal.toLocaleString();
+      chip.className = 'bt-stats-chip bt-balance-chip' + (bal < 0 ? ' overdraft' : '');
+    }
+    var oddsEl = document.getElementById('bt-odds-val');
+    if (oddsEl) oddsEl.textContent = '×1';
+  }
+
+  function showMsg(text, duration) {
+    var el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(showMsg._t);
+    showMsg._t = setTimeout(function() { el.classList.remove('show'); }, duration || 1200);
+  }
+  window.showMsg = showMsg;
+
+  window.onBigTwoGameOver = function(winnerIdx) {
+    var playerName = G.players[0].name || '你';
+    var isWin = winnerIdx === 0;
+    var mult = 1;
+    var delta = isWin ? _betStake * 3 * mult : -_betStake * mult;
+    var prevBal = getBalance();
+    var newBal = prevBal + delta;
+    saveBalance(newBal);
+    updateHeaderBalance();
+
+    document.getElementById('gameover-result').textContent = (isWin ? playerName : '人机') + ' 获胜！';
+    document.getElementById('gameover-detail-msg').textContent = isWin ? '先出完手牌。' : '对方先出完手牌。';
+    var deltaEl = document.getElementById('gameover-delta');
+    deltaEl.textContent = (delta >= 0 ? '+' : '') + delta + ' 金币';
+    deltaEl.className = 'gameover-detail-row ' + (delta >= 0 ? 'highlight' : 'negative');
+    document.getElementById('gameover-balance').textContent = '当前余额：' + newBal.toLocaleString() + (newBal < 0 ? '（逾额）' : '');
+    document.getElementById('gameover-ui').style.display = 'flex';
+  };
+
+  document.getElementById('bt-btn-avatar').addEventListener('click', function() {
+    document.getElementById('bt-avatar-picker').classList.remove('hidden');
+  });
+  document.getElementById('bt-btn-ap-close').addEventListener('click', function() {
+    document.getElementById('bt-avatar-picker').classList.add('hidden');
+  });
+  document.getElementById('bt-avatar-picker').addEventListener('click', function(e) {
+    if (e.target === document.getElementById('bt-avatar-picker'))
+      document.getElementById('bt-avatar-picker').classList.add('hidden');
+  });
+  document.querySelectorAll('.bt-ap-opt').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var av = btn.dataset.avatar;
+      localStorage.setItem(BT_KEYS.avatar, av);
+      document.getElementById('bt-avatar').textContent = av;
+      document.querySelectorAll('.bt-ap-opt').forEach(function(b) {
+        b.classList.toggle('selected', b.dataset.avatar === av);
+      });
+    });
+  });
+
+  document.getElementById('bt-btn-rename').addEventListener('click', function() {
+    var cur = localStorage.getItem(BT_KEYS.name) || BT_DEFAULT_NAME;
+    var val = prompt('请输入昵称：', cur);
+    if (val != null && val.trim()) {
+      var trimmed = val.trim().slice(0, 12);
+      localStorage.setItem(BT_KEYS.name, trimmed);
+      document.getElementById('bt-profile-name').textContent = trimmed;
+    }
+  });
+
+  document.querySelectorAll('.bet-opt').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _betStake = parseInt(btn.dataset.bet, 10);
+      document.querySelectorAll('.bet-opt').forEach(function(b) {
+        b.classList.toggle('active', parseInt(b.dataset.bet, 10) === _betStake);
+      });
+    });
+  });
+
+  document.getElementById('btn-start-game').addEventListener('click', function() {
+    document.getElementById('welcome-screen').style.display = 'none';
+    document.getElementById('game-root').style.display = 'flex';
+    loadProfile();
+    applyProfileToGame();
+    updateHeaderBalance();
+    initGame();
+  });
+
+  document.getElementById('btn-new-game').addEventListener('click', function() {
+    document.getElementById('gameover-ui').style.display = 'none';
+    applyProfileToGame();
+    updateHeaderBalance();
+    initGame();
+  });
+
+  document.getElementById('btn-replay').addEventListener('click', function() {
+    document.getElementById('gameover-ui').style.display = 'none';
+    applyProfileToGame();
+    updateHeaderBalance();
+    initGame();
+  });
+
+  document.getElementById('btn-pass').addEventListener('click', function() {
+    humanPass();
+  });
+  document.getElementById('btn-play').addEventListener('click', function() {
+    humanPlay(G.selectedCards);
+  });
+  document.getElementById('btn-select-all').addEventListener('click', function() {
+    if (G.phase !== 'playing' || G.currentPlayerIdx !== 0) return;
+    G.selectedCards = G.players[0].cards.slice();
+    renderPlayerArea(0);
+    updatePlayBtn();
+  });
+  document.getElementById('btn-deselect').addEventListener('click', function() {
+    G.selectedCards = [];
+    renderPlayerArea(0);
+    updatePlayBtn();
+  });
+
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', loadProfile);
+  else
+    loadProfile();
+})();
+</script>
+</body>
+</html>
