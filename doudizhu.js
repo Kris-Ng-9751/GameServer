@@ -34,6 +34,12 @@ const G = {
   selectedCards: [],
   bidOrder: [],
   bidIdx: 0,
+  biddingMode: 'call',      // call | rob
+  callerIdx: -1,            // first caller
+  landlordCandidateIdx: -1, // current landlord candidate during rob
+  robOrder: [],
+  robIdx: 0,
+  noCallPlayers: [],
   passCount: 0,
   baseScore: 1,
   bombCount: 0,
@@ -186,6 +192,12 @@ function initGame() {
   const startIdx = Math.floor(Math.random()*3);
   G.bidOrder = [...G.bidOrder.slice(startIdx), ...G.bidOrder.slice(0, startIdx)];
   G.bidIdx = 0;
+  G.biddingMode = 'call';
+  G.callerIdx = -1;
+  G.landlordCandidateIdx = -1;
+  G.robOrder = [];
+  G.robIdx = 0;
+  G.noCallPlayers = [];
   G.currentPlayerIdx = G.bidOrder[0];
   render();
   // 若AI先叫
@@ -199,23 +211,69 @@ function bid(playerIdx, callIt) {
   if (G.phase !== 'bidding') return;
   if (playerIdx !== G.currentPlayerIdx) return;
 
+  // 叫地主阶段
+  if (G.biddingMode === 'call') {
+    if (callIt) {
+      // 首个叫地主者进入抢地主流程
+      G.callerIdx = playerIdx;
+      G.landlordCandidateIdx = playerIdx;
+      G.biddingMode = 'rob';
+      G.robOrder = [1, 2].map(off => (playerIdx + off) % 3);
+      G.robIdx = 0;
+      advanceRobTurn();
+      return;
+    }
+
+    // 不叫 → 记录并轮到下一个
+    if (!G.noCallPlayers.includes(playerIdx)) G.noCallPlayers.push(playerIdx);
+    G.bidIdx++;
+    if (G.bidIdx >= 3) {
+      // 全部不叫，重新发牌
+      showMsg('所有人都不叫，重新发牌！', 1500);
+      setTimeout(initGame, 1600);
+      return;
+    }
+    G.currentPlayerIdx = G.bidOrder[G.bidIdx];
+    render();
+    if (G.players[G.currentPlayerIdx].type === 'ai') {
+      setTimeout(aiBid, 900);
+    }
+    return;
+  }
+
+  // 抢地主阶段
   if (callIt) {
-    setLandlord(playerIdx);
+    G.landlordCandidateIdx = playerIdx;
+    G.baseScore *= 2;
+  }
+  G.robIdx++;
+  if (advanceRobTurn()) return;
+
+  if (G.landlordCandidateIdx < 0) {
+    // 理论兜底：至少会有首叫者
+    showMsg('叫牌异常，重新发牌！', 1200);
+    setTimeout(initGame, 1300);
     return;
   }
-  // 不叫 → 下一个
-  G.bidIdx++;
-  if (G.bidIdx >= 3) {
-    // 全部不叫，重新发牌
-    showMsg('所有人都不叫，重新发牌！', 1500);
-    setTimeout(initGame, 1600);
-    return;
+  setLandlord(G.landlordCandidateIdx);
+}
+
+function advanceRobTurn() {
+  while (G.robIdx < G.robOrder.length) {
+    const idx = G.robOrder[G.robIdx];
+    // 有过“不叫地主”的玩家不能抢地主
+    if (G.noCallPlayers.includes(idx)) {
+      G.robIdx++;
+      continue;
+    }
+    G.currentPlayerIdx = idx;
+    render();
+    if (G.players[idx].type === 'ai') {
+      setTimeout(aiBid, 900);
+    }
+    return true;
   }
-  G.currentPlayerIdx = G.bidOrder[G.bidIdx];
-  render();
-  if (G.players[G.currentPlayerIdx].type === 'ai') {
-    setTimeout(aiBid, 900);
-  }
+  return false;
 }
 
 function setLandlord(playerIdx) {
@@ -240,8 +298,8 @@ function setLandlord(playerIdx) {
 function aiBid() {
   const p = G.players[G.currentPlayerIdx];
   const score = evalHandScore(p.cards);
-  // 手牌分 > 4 就叫，随机因素 ±1
-  const threshold = 4 + (Math.random() < 0.3 ? -1 : 0);
+  // 抢地主比叫地主更激进一点
+  const threshold = (G.biddingMode === 'rob' ? 5 : 4) + (Math.random() < 0.3 ? -1 : 0);
   bid(G.currentPlayerIdx, score >= threshold);
 }
 

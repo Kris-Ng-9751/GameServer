@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>連線寶石</title>
+  <style>
+    :root{
+      --gold:#f7c86a;
+      --gold-2:#d99d3e;
+      --stone:#7d5a35;
+      --stone-deep:#4f3520;
+      --bg:#d5ab68;
+      --panel:#2b1d12;
+      --line:rgba(255,233,180,0.32);
+      --text:#fff1d1;
+      --muted:#dec48f;
+      --ok:#4af2a0;
+      --bad:#ff7f7f;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255,233,173,0.85), transparent 35%),
+        radial-gradient(circle at 86% 10%, rgba(255,225,138,0.62), transparent 30%),
+        linear-gradient(180deg,#f0cc87,#c28b4a 35%,#8a5b31 100%);
+      padding:16px;
+      display:flex;
+      justify-content:center;
+    }
+    .wrap{width:min(1080px,100%);display:flex;flex-direction:column;gap:12px}
+    .topbar{
+      background:linear-gradient(180deg,#684423,#3f2918);
+      border:2px solid #8a6138;
+      border-radius:12px;
+      padding:10px 12px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+      box-shadow:0 8px 24px rgba(0,0,0,.28);
+    }
+    .title{font-weight:900;letter-spacing:.04em;color:#ffd987}
+    .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .chip{
+      padding:5px 10px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(0,0,0,.2);font-size:.84rem;color:var(--muted);
+    }
+    .chip strong{color:#ffe8aa}
+    .btn{
+      text-decoration:none;color:#ffe8aa;font-size:.84rem;
+      border:1px solid var(--line);padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.18);
+    }
+    .stage{
+      background:linear-gradient(180deg,#7c4f2b,#5d3b22);
+      border:2px solid #8b6138;
+      border-radius:14px;
+      padding:12px;
+      box-shadow:0 10px 28px rgba(0,0,0,.35);
+    }
+    .profile{
+      display:flex;align-items:center;gap:10px;margin-bottom:10px;
+      color:#edd3a1;font-size:.88rem;
+    }
+    .avatar{
+      width:40px;height:40px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;font-size:1.45rem;
+      background:linear-gradient(135deg,#355a8d,#2d6b48);border:2px solid #ffd987;
+    }
+    .board-zone{
+      display:grid;
+      grid-template-columns:minmax(0,1fr);
+      gap:10px;
+    }
+    .grid-frame{
+      background:linear-gradient(180deg,#b48249,#8f653a);
+      border:2px solid #d5ad6b;
+      border-radius:12px;
+      padding:8px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      grid-template-rows:repeat(3,1fr);
+      gap:6px;
+      min-height:300px;
+    }
+    .cell{
+      border-radius:10px;
+      border:2px solid #e2bd7d;
+      background:linear-gradient(180deg,#f5ddb0,#d9b57a);
+      color:#65401f;
+      display:flex;align-items:center;justify-content:center;
+      font-size:2rem;font-weight:900;
+      text-shadow:0 1px 0 rgba(255,255,255,.4);
+      transition:transform .14s,border-color .14s,box-shadow .14s,opacity .14s;
+      user-select:none;
+    }
+    .cell.gem{font-size:2.05rem}
+    .cell.wild{
+      background:linear-gradient(180deg,#ffe089,#f7b13f);
+      color:#7a2f00;
+      border-color:#ffd879;
+      box-shadow:inset 0 0 18px rgba(255,255,255,.35);
+    }
+    .cell.hit{
+      border-color:#fff2b8;
+      box-shadow:0 0 14px rgba(255,235,151,.95),0 0 28px rgba(255,190,80,.5);
+      transform:scale(1.05);
+    }
+    .cell.vanish{opacity:.08;transform:scale(.75)}
+    .cell.mult{
+      background:radial-gradient(circle at 35% 35%, #b7edff, #49a5d2 65%);
+      color:#09324a;
+      border-color:#d8f3ff;
+      font-size:1.75rem;
+    }
+    .cell.mult.mid{
+      background:radial-gradient(circle at 35% 35%, #ffe08d, #f3a935 65%);
+      color:#643500;
+      border-color:#ffe4a8;
+      box-shadow:0 0 14px rgba(255,225,140,.9);
+    }
+    .bottom{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 300px;
+      gap:10px;
+    }
+    .controls{
+      background:rgba(0,0,0,.2);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    }
+    .bet{border:1px solid var(--line);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:#ffe8be;cursor:pointer;font-weight:800}
+    .bet.active{background:linear-gradient(135deg,#ffe08f,#f4ad3d);color:#5b3600;border-color:#ffd982}
+    .spin{
+      margin-left:auto;border:none;border-radius:999px;cursor:pointer;
+      width:66px;height:66px;font-size:1.25rem;font-weight:900;
+      color:#5b3600;background:radial-gradient(circle at 35% 35%, #ffeaa8, #f4ad3d 70%);
+      box-shadow:0 8px 18px rgba(0,0,0,.32);
+    }
+    .spin:disabled{opacity:.5;cursor:not-allowed}
+    .msg{
+      flex:1 1 100%;
+      font-size:.92rem;color:#f1d8ab;min-height:1.35em;
+    }
+    .msg.win{color:var(--ok)}
+    .msg.lose{color:var(--bad)}
+    .history{
+      background:rgba(0,0,0,.22);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px;
+    }
+    .history-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .history-title{font-size:.86rem;color:#ffe39d;font-weight:800}
+    .btn-mini{border:1px solid var(--line);background:rgba(255,255,255,.08);color:#f7dfaf;border-radius:8px;padding:3px 7px;cursor:pointer;font-size:.75rem}
+    .history-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;max-height:206px;overflow:auto}
+    .history-item{
+      font-size:.78rem;color:#f4e7cd;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 6px;
+      display:flex;justify-content:space-between;gap:8px;background:rgba(255,255,255,.04)
+    }
+    .amount{font-weight:800;color:var(--ok);white-space:nowrap}
+    .amount.lose{color:var(--bad)}
+    .history-empty{font-size:.8rem;color:#d9bf90}
+    .rules{
+      margin-top:6px;
+      font-size:.77rem;color:#f0d8ad;line-height:1.55;
+    }
+    @media (max-width:920px){
+      .bottom{grid-template-columns:1fr}
+      .board-zone{grid-template-columns:1fr}
+      .grid{min-height:320px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">💎 Fortune Gems · 連線寶石</div>
+      <div class="top-actions">
+        <span class="chip">Balance <strong id="balChip">10,000</strong></span>
+        <span class="chip">Win <strong id="winChip">0</strong></span>
+        <a href="index.html" class="btn">🏠 返回大厅</a>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="profile">
+        <div class="avatar" id="avatar">🀄</div>
+        <div>
+          <div id="name">玩家</div>
+          <div style="font-size:.78rem;">3x4 盘面：3列中奖轴 + 右侧倍率轴。</div>
+        </div>
+      </div>
+
+      <div class="board-zone">
+        <div class="grid-frame">
+          <div class="grid" id="grid"></div>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <div class="controls">
+          <span style="font-size:.84rem;color:#f1d8ab;">Bet:</span>
+          <button class="bet active" data-bet="10">10</button>
+          <button class="bet" data-bet="50">50</button>
+          <button class="bet" data-bet="100">100</button>
+          <button class="bet" data-bet="500">500</button>
+          <button class="spin" id="spinBtn">↻</button>
+          <div class="msg" id="msg">点击旋转开始，按 5 条线判定 3 连；第 4 列仅中间倍率生效。</div>
+          <div class="rules">
+            规则：前 3 列按 5 条线判定 3 连（含 WILD 代替），第 4 列为倍率轴，仅中间倍率生效。<br/>
+            EX 额外下注：每局多收 50% 下注，移除 x1 并提高高倍率出现概率。
+          </div>
+        </div>
+
+        <div class="history">
+          <div class="history-head">
+            <div class="history-title">战绩记录</div>
+            <button class="btn-mini" id="clearHistoryBtn">清空</button>
+          </div>
+          <ul class="history-list" id="historyList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const KEYS = {
+        name: "mj-player-name",
+        avatar: "mj-player-avatar",
+        balance: "mj-player-balance",
+        history: "fortune-gems-history"
+      };
+      const DEFAULTS = { name: "玩家", avatar: "🀄", balance: 10000 };
+      const ROWS = 3;
+      const COLS = 4;
+      const SIZE = ROWS * COLS;
+      const WILD = "W";
+      const SYMBOLS = ["A", "K", "Q", "J", "🟥", "🟦", "🟩"];
+      const PAY = { W: 25, "🟥": 20, "🟦": 15, "🟩": 12, A: 10, K: 8, Q: 5, J: 2 };
+      const PAYLINES = [
+        [0, 1, 2],   // top
+        [4, 5, 6],   // middle
+        [8, 9, 10],  // bottom
+        [0, 5, 10],  // down diag
+        [8, 5, 2]    // up diag
+      ];
+
+      const gridEl = document.getElementById("grid");
+      const msgEl = document.getElementById("msg");
+      const balChip = document.getElementById("balChip");
+      const winChip = document.getElementById("winChip");
+      const spinBtn = document.getElementById("spinBtn");
+      const betBtns = Array.from(document.querySelectorAll(".bet"));
+      const historyListEl = document.getElementById("historyList");
+      const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+      let bet = 10;
+      let spinning = false;
+      let extraBet = false;
+      let autoSpinOn = false;
+      let autoSpinTimer = null;
+      let board = Array(SIZE).fill("A");
+      const maxHistory = 14;
+      const exBtn = document.createElement("button");
+      exBtn.className = "bet";
+      exBtn.id = "exBetBtn";
+      exBtn.textContent = "EX 额外下注: 关";
+      const autoBtn = document.createElement("button");
+      autoBtn.className = "bet";
+      autoBtn.id = "autoSpinBtn";
+      autoBtn.textContent = "自动旋转: 关";
+      document.querySelector(".controls").insertBefore(exBtn, spinBtn);
+      document.querySelector(".controls").insertBefore(autoBtn, spinBtn);
+
+      function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+      function rand(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+      function getBalance(){
+        const v = parseInt(localStorage.getItem(KEYS.balance) ?? DEFAULTS.balance, 10);
+        return Number.isNaN(v) ? DEFAULTS.balance : v;
+      }
+      function setBalance(v){
+        localStorage.setItem(KEYS.balance, String(v));
+        balChip.textContent = v.toLocaleString();
+      }
+      function setMsg(text, cls){
+        msgEl.textContent = text;
+        msgEl.className = "msg" + (cls ? " " + cls : "");
+      }
+      function renderAutoBtn(){
+        autoBtn.classList.toggle("active", autoSpinOn);
+        autoBtn.textContent = `自动旋转: ${autoSpinOn ? "开" : "关"}`;
+      }
+      function stopAutoSpin(withMsg){
+        autoSpinOn = false;
+        if (autoSpinTimer){
+          clearTimeout(autoSpinTimer);
+          autoSpinTimer = null;
+        }
+        renderAutoBtn();
+        if (withMsg) setMsg(withMsg, "");
+      }
+      function scheduleNextAutoSpin(){
+        if (!autoSpinOn) return;
+        if (autoSpinTimer) clearTimeout(autoSpinTimer);
+        autoSpinTimer = setTimeout(() => {
+          autoSpinTimer = null;
+          if (!autoSpinOn || spinning) return;
+          startSpin();
+        }, 1200);
+      }
+      function loadProfile(){
+        document.getElementById("name").textContent = localStorage.getItem(KEYS.name) || DEFAULTS.name;
+        document.getElementById("avatar").textContent = localStorage.getItem(KEYS.avatar) || DEFAULTS.avatar;
+        balChip.textContent = getBalance().toLocaleString();
+      }
+
+      function getHistory(){
+        try{
+          const arr = JSON.parse(localStorage.getItem(KEYS.history) || "[]");
+          return Array.isArray(arr) ? arr : [];
+        }catch(_e){ return []; }
+      }
+      function saveHistory(arr){
+        localStorage.setItem(KEYS.history, JSON.stringify(arr.slice(0, maxHistory)));
+      }
+      function renderHistory(){
+        const arr = getHistory();
+        if (!arr.length){
+          historyListEl.innerHTML = '<li class="history-empty">暂无记录</li>';
+          return;
+        }
+        historyListEl.innerHTML = arr.map(item => (
+          `<li class="history-item"><span>${item.ts} · 注 ${item.bet} · ${item.note}</span><span class="amount ${item.net < 0 ? "lose" : ""}">${item.net >= 0 ? "+" : ""}${item.net.toLocaleString()}</span></li>`
+        )).join("");
+      }
+      function addHistory(stake, win, note){
+        const d = new Date();
+        const ts = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        const arr = getHistory();
+        arr.unshift({ ts, bet: stake, win, note, net: win - stake });
+        saveHistory(arr);
+        renderHistory();
+      }
+
+      function newSymbol(){
+        const r = Math.random();
+        if (r < 0.08) return WILD;
+        return rand(SYMBOLS);
+      }
+      function pickMultiplier(){
+        const pool = extraBet
+          ? [[2, 34], [3, 28], [5, 20], [10, 12], [15, 6]]
+          : [[1, 32], [2, 27], [3, 19], [5, 13], [10, 6], [15, 3]];
+        const total = pool.reduce((s, p) => s + p[1], 0);
+        let roll = Math.random() * total;
+        for (const [mul, w] of pool){
+          roll -= w;
+          if (roll <= 0) return mul;
+        }
+        return pool[0][0];
+      }
+      function newBoard(){
+        const arr = [];
+        for (let r = 0; r < ROWS; r += 1){
+          arr.push(newSymbol(), newSymbol(), newSymbol());
+          arr.push(pickMultiplier());
+        }
+        return arr;
+      }
+
+      function renderGrid(hitSet){
+        const hs = hitSet || new Set();
+        gridEl.innerHTML = board.map((s, i) => {
+          const col = i % COLS;
+          if (col === 3){
+            const mid = i === 7 ? "mid" : "";
+            return `<div class="cell mult ${mid} ${hs.has(i) ? "hit" : ""}" data-i="${i}">x${s}</div>`;
+          }
+          const isWild = s === WILD;
+          const txt = isWild ? "WILD" : s;
+          return `<div class="cell ${isWild ? "wild" : "gem"} ${hs.has(i) ? "hit" : ""}" data-i="${i}">${txt}</div>`;
+        }).join("");
+      }
+
+      function evalLine(symA, symB, symC, stake){
+        const arr = [symA, symB, symC];
+        const nonWild = arr.filter(s => s !== WILD);
+        if (nonWild.length === 0){
+          return { ok: true, symbol: WILD, win: Math.floor(stake * PAY.W), hitSymbol: "WILD" };
+        }
+        const target = nonWild[0];
+        if (nonWild.some(s => s !== target)){
+          return { ok: false, symbol: "", win: 0, hitSymbol: "" };
+        }
+        const pay = PAY[target] || 0;
+        return { ok: true, symbol: target, win: Math.floor(stake * pay), hitSymbol: target };
+      }
+
+      function evaluateSpin(curBoard, baseStake){
+        const hitSet = new Set();
+        let lineWinTotal = 0;
+        const lines = [];
+        let hasWildTriple = false;
+
+        PAYLINES.forEach((line, lineIdx) => {
+          const a = curBoard[line[0]];
+          const b = curBoard[line[1]];
+          const c = curBoard[line[2]];
+          const r = evalLine(a, b, c, baseStake);
+          if (!r.ok) return;
+          lineWinTotal += r.win;
+          lines.push(`L${lineIdx + 1}:${r.hitSymbol}`);
+          if (a === WILD && b === WILD && c === WILD){
+            hasWildTriple = true;
+          }
+          line.forEach(i => hitSet.add(i));
+        });
+
+        const mult = Number(curBoard[7]) || 1;
+        const finalWin = lineWinTotal > 0 ? lineWinTotal * mult : 0;
+        return { lineWinTotal, finalWin, mult, hitSet, lines, hasWildTriple };
+      }
+
+      async function animateSpinStart(){
+        for (let t = 0; t < 8; t += 1){
+          board = newBoard();
+          renderGrid();
+          await sleep(70);
+        }
+      }
+
+      async function startSpin(){
+        if (spinning) return;
+        const stake = extraBet ? Math.floor(bet * 1.5) : bet;
+        const bal = getBalance();
+        if (bal < stake){
+          setMsg("余额不足，请降低下注。", "lose");
+          if (autoSpinOn){
+            stopAutoSpin("自动旋转已停止：余额不足。");
+          }
+          return;
+        }
+        spinning = true;
+        spinBtn.disabled = true;
+        exBtn.disabled = true;
+        winChip.textContent = "0";
+        setBalance(bal - stake);
+        setMsg("旋转中...", "");
+        await animateSpinStart();
+
+        const mainResult = evaluateSpin(board, bet);
+        let totalWin = mainResult.finalWin;
+        let note = `${mainResult.lines.length}线·x${mainResult.mult}${extraBet ? "·EX" : ""}`;
+        let msgText = "";
+        let winClass = "lose";
+
+        if (mainResult.finalWin > 0){
+          renderGrid(mainResult.hitSet);
+          winClass = "win";
+          msgText = `命中 ${mainResult.lines.join(" / ")} · x${mainResult.mult}，赢得 ${mainResult.finalWin.toLocaleString()}`;
+        } else {
+          msgText = `未中奖（本局倍率 x${mainResult.mult}）。`;
+        }
+
+        // 任一线出现 3 个 WILD，额外触发 1 次免费旋转（仅一次）
+        if (mainResult.hasWildTriple){
+          setMsg("触发 Free Spin！免费旋转 1 次...", "win");
+          await sleep(450);
+          await animateSpinStart();
+          const freeResult = evaluateSpin(board, bet);
+          if (freeResult.finalWin > 0){
+            renderGrid(freeResult.hitSet);
+            totalWin += freeResult.finalWin;
+            winClass = "win";
+            msgText = `${msgText} ｜ Free Spin 命中 ${freeResult.lines.join(" / ")} · x${freeResult.mult}，再赢 ${freeResult.finalWin.toLocaleString()}`;
+            note += `+FS(${freeResult.lines.length}线·x${freeResult.mult})`;
+          } else {
+            msgText = `${msgText} ｜ Free Spin 未中奖`;
+            note += "+FS(0)";
+          }
+        }
+
+        if (totalWin > 0){
+          setBalance(getBalance() + totalWin);
+          winChip.textContent = totalWin.toLocaleString();
+          setMsg(msgText, winClass);
+          addHistory(stake, totalWin, note);
+        } else {
+          winChip.textContent = "0";
+          setMsg(msgText, "lose");
+          addHistory(stake, 0, `${extraBet ? "EX·" : ""}未中奖`);
+        }
+        spinning = false;
+        spinBtn.disabled = false;
+        exBtn.disabled = false;
+        scheduleNextAutoSpin();
+      }
+
+      betBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          bet = Number(btn.dataset.bet);
+          betBtns.forEach(b => b.classList.toggle("active", b === btn));
+        });
+      });
+      spinBtn.addEventListener("click", startSpin);
+      autoBtn.addEventListener("click", () => {
+        if (autoSpinOn){
+          stopAutoSpin("自动旋转已关闭。");
+          return;
+        }
+        if (spinning) return;
+        const stake = extraBet ? Math.floor(bet * 1.5) : bet;
+        if (getBalance() < stake){
+          setMsg("余额不足，无法开启自动旋转。", "lose");
+          return;
+        }
+        autoSpinOn = true;
+        renderAutoBtn();
+        setMsg("自动旋转已开启。", "");
+        startSpin();
+      });
+      exBtn.addEventListener("click", () => {
+        if (spinning) return;
+        extraBet = !extraBet;
+        exBtn.classList.toggle("active", extraBet);
+        exBtn.textContent = `EX 额外下注: ${extraBet ? "开" : "关"}`;
+      });
+      clearHistoryBtn.addEventListener("click", () => {
+        localStorage.removeItem(KEYS.history);
+        renderHistory();
+        setMsg("战绩记录已清空。", "");
+      });
+
+      loadProfile();
+      renderHistory();
+      board = newBoard();
+      renderGrid();
+      renderAutoBtn();
+    })();
+  </script>
+</body>
+</html>

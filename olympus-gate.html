@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>奥林匹斯之门</title>
+  <style>
+    :root{
+      --bg1:#101531;
+      --bg2:#25184e;
+      --panel:#1a1f43;
+      --line:rgba(188,205,255,.28);
+      --text:#f3f4ff;
+      --muted:#b9c2f0;
+      --gold:#ffd675;
+      --ok:#6ef2a8;
+      --bad:#ff8a97;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(124,168,255,.32), transparent 35%),
+        radial-gradient(circle at 85% 20%, rgba(255,206,116,.25), transparent 33%),
+        linear-gradient(180deg,var(--bg2),var(--bg1) 55%,#0b0f24);
+      padding:14px;
+      display:flex;
+      justify-content:center;
+    }
+    .wrap{width:min(1120px,100%);display:flex;flex-direction:column;gap:12px}
+    .top{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:linear-gradient(180deg,rgba(40,50,100,.94),rgba(18,24,54,.95));
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .title{font-size:1.02rem;font-weight:900;letter-spacing:.04em;color:#ffe9af}
+    .chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .chip{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:.84rem;
+      color:var(--muted);
+      background:rgba(0,0,0,.2);
+    }
+    .chip strong{color:#fff7dd}
+    .chip.fs-chip{
+      display:none;
+      color:#ffe7af;
+      border-color:rgba(255,213,126,.55);
+      background:rgba(255,189,81,.16);
+    }
+    .chip.fs-chip.active{display:inline-block}
+    .btn{
+      text-decoration:none;
+      color:#fff0c1;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:6px 10px;
+      font-size:.82rem;
+      background:rgba(0,0,0,.2);
+    }
+    .stage{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:linear-gradient(180deg,rgba(32,40,85,.92),rgba(20,26,58,.96));
+      padding:12px;
+      box-shadow:0 14px 32px rgba(0,0,0,.35);
+    }
+    .fs-banner{
+      display:none;
+      margin-bottom:10px;
+      border:1px solid rgba(255,218,132,.5);
+      border-radius:10px;
+      background:linear-gradient(135deg,rgba(255,214,124,.2),rgba(255,168,64,.16));
+      color:#ffe7b2;
+      padding:7px 10px;
+      font-size:.86rem;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .fs-banner.active{display:block}
+    .fs-flash{
+      position:fixed;
+      left:50%;
+      top:18%;
+      transform:translateX(-50%) scale(.92);
+      z-index:999;
+      padding:12px 20px;
+      border-radius:12px;
+      border:1px solid rgba(255,220,145,.58);
+      background:linear-gradient(135deg,rgba(255,226,160,.95),rgba(255,181,86,.93));
+      color:#5f3600;
+      font-weight:900;
+      letter-spacing:.04em;
+      box-shadow:0 14px 28px rgba(0,0,0,.35);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s, transform .2s;
+    }
+    .fs-flash.show{
+      opacity:1;
+      transform:translateX(-50%) scale(1);
+    }
+    .profile{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+      font-size:.88rem;
+      color:#dce2ff;
+    }
+    .avatar{
+      width:42px;height:42px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.4rem;
+      border:2px solid #ffd889;
+      background:linear-gradient(135deg,#355fa0,#4f3f93);
+    }
+    .main{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 320px;
+      gap:10px;
+      align-items:start;
+    }
+    .board-wrap{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:9px;
+      background:linear-gradient(180deg,#354086,#232b63);
+    }
+    .board{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:6px;
+      min-height:420px;
+    }
+    .cell{
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.28);
+      background:linear-gradient(180deg,#6c78c8,#4956a8);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:2rem;
+      user-select:none;
+      transition:transform .14s,opacity .14s,box-shadow .14s,border-color .14s;
+      min-height:64px;
+    }
+    .cell.hit{
+      border-color:#fff4c4;
+      box-shadow:0 0 12px rgba(255,227,146,.9),0 0 25px rgba(255,192,94,.45);
+      transform:scale(1.05);
+    }
+    .cell.vanish{opacity:.05;transform:scale(.8)}
+    .cell.mult{
+      background:radial-gradient(circle at 35% 30%, #fff4be, #f5b63c 70%);
+      color:#623600;
+      border-color:#ffe6ac;
+      font-size:1.55rem;
+      font-weight:900;
+      text-shadow:0 1px 0 rgba(255,255,255,.35);
+    }
+    .right{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(0,0,0,.16);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .controls{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px;
+      background:rgba(255,255,255,.03);
+      display:flex;
+      gap:7px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .bet{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:6px 12px;
+      font-weight:800;
+      color:#eef0ff;
+      background:rgba(255,255,255,.08);
+      cursor:pointer;
+    }
+    .bet.active{
+      color:#553300;
+      border-color:#ffd989;
+      background:linear-gradient(135deg,#ffe7af,#f8b84e);
+    }
+    .spin{
+      margin-left:auto;
+      width:66px;height:66px;
+      border:none;border-radius:999px;
+      font-size:1.3rem;font-weight:900;
+      color:#663f00;
+      cursor:pointer;
+      background:radial-gradient(circle at 35% 35%, #ffeebf, #f5b53f 70%);
+      box-shadow:0 8px 18px rgba(0,0,0,.35);
+    }
+    .spin:disabled{opacity:.5;cursor:not-allowed}
+    .msg{font-size:.9rem;line-height:1.45;color:#dde5ff;min-height:2.6em}
+    .msg.win{color:var(--ok)}
+    .msg.lose{color:var(--bad)}
+    .panel-title{font-size:.83rem;font-weight:800;color:#ffe6ae}
+    .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+    .item{
+      border:1px solid rgba(255,255,255,.17);
+      border-radius:8px;
+      padding:5px 6px;
+      font-size:.78rem;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      background:rgba(255,255,255,.05);
+      color:#edf0ff;
+    }
+    .amt{font-weight:800;color:var(--ok);white-space:nowrap}
+    .amt.lose{color:var(--bad)}
+    .hint{font-size:.75rem;color:#c7d0f4;line-height:1.55}
+    @media (max-width:940px){
+      .main{grid-template-columns:1fr}
+      .board{min-height:380px}
+      .cell{min-height:56px;font-size:1.75rem}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">⚡ 奥林匹斯之门 · Gates of Olympus</div>
+      <div class="chips">
+        <span class="chip">余额 <strong id="balChip">10,000</strong></span>
+        <span class="chip">本局赢分 <strong id="winChip">0</strong></span>
+        <span class="chip">总倍率 <strong id="mulChip">x1</strong></span>
+        <span class="chip fs-chip" id="fsChip">Free Spins <strong id="fsChipVal">0</strong></span>
+        <a href="index.html" class="btn">🏠 返回大厅</a>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="fs-banner" id="fsBanner">⚡ FREE SPINS 模式中 · 剩余 <strong id="fsLeft">0</strong> 次</div>
+      <div class="profile">
+        <div class="avatar" id="avatar">🀄</div>
+        <div>
+          <div id="name">玩家</div>
+          <div style="font-size:.78rem;">6x5 消除盘面，符号 8 连起算，累积倍率结算。</div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="board-wrap">
+          <div class="board" id="board"></div>
+        </div>
+
+        <div class="right">
+          <div class="controls">
+            <span style="font-size:.84rem;color:#dbe2ff;">Bet:</span>
+            <button class="bet active" data-bet="10">10</button>
+            <button class="bet" data-bet="50">50</button>
+            <button class="bet" data-bet="100">100</button>
+            <button class="bet" data-bet="500">500</button>
+            <button class="bet" id="autoBtn">自动</button>
+            <button class="spin" id="spinBtn">↻</button>
+          </div>
+          <div class="msg" id="msg">点击旋转开始。每种符号数量达到 8/10/12/15 可得奖，倍率会在当局累积。</div>
+
+          <div class="panel-title">战绩</div>
+          <ul class="list" id="history"></ul>
+
+          <div class="hint">
+            玩法：每局先扣下注，盘面统计同符号数量并消除，补位后继续连消。<br/>
+            金色球为倍率球（x2/x3/x5/x10/x15/x25），在当局累加后统一乘在总中奖上。<br/>
+            出现 4 个 Scatter（⚡）可触发 10 次免费旋转。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const KEYS = {
+        name: "mj-player-name",
+        avatar: "mj-player-avatar",
+        balance: "mj-player-balance",
+        history: "olympus-gate-history"
+      };
+      const DEF = { name: "玩家", avatar: "🀄", balance: 10000 };
+
+      const COLS = 6;
+      const ROWS = 5;
+      const SIZE = COLS * ROWS;
+      const SCAT = "⚡";
+      const SYMS = ["🔷","🟩","🔺","🟣","👑","💍","🧿",SCAT];
+      const WEIGHTED = [
+        ["🔷", 19], ["🟩", 18], ["🔺", 17], ["🟣", 16],
+        ["👑", 12], ["💍", 10], ["🧿", 7], [SCAT, 5]
+      ];
+      const PAY = {
+        "🔷": [8, 10, 12, 15, 0.2, 0.4, 0.8, 1.4],
+        "🟩": [8, 10, 12, 15, 0.22, 0.45, 0.85, 1.5],
+        "🔺": [8, 10, 12, 15, 0.25, 0.5, 1, 1.8],
+        "🟣": [8, 10, 12, 15, 0.3, 0.6, 1.2, 2],
+        "👑": [8, 10, 12, 15, 0.5, 1, 2, 4],
+        "💍": [8, 10, 12, 15, 0.6, 1.2, 2.4, 5],
+        "🧿": [8, 10, 12, 15, 0.8, 1.6, 3.2, 8],
+        "⚡": [4, 5, 6, 7, 2, 5, 20, 100]
+      };
+
+      const boardEl = document.getElementById("board");
+      const msgEl = document.getElementById("msg");
+      const balChip = document.getElementById("balChip");
+      const winChip = document.getElementById("winChip");
+      const mulChip = document.getElementById("mulChip");
+      const fsChip = document.getElementById("fsChip");
+      const fsChipVal = document.getElementById("fsChipVal");
+      const fsBanner = document.getElementById("fsBanner");
+      const fsLeftEl = document.getElementById("fsLeft");
+      const spinBtn = document.getElementById("spinBtn");
+      const autoBtn = document.getElementById("autoBtn");
+      const betBtns = Array.from(document.querySelectorAll(".bet[data-bet]"));
+      const historyEl = document.getElementById("history");
+      const fsFlashEl = document.createElement("div");
+      fsFlashEl.className = "fs-flash";
+      document.body.appendChild(fsFlashEl);
+
+      let board = Array(SIZE).fill("🔷");
+      let bet = 10;
+      let spinning = false;
+      let auto = false;
+      let freeSpins = 0;
+      let autoTimer = null;
+
+      function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+      function randWeighted(pool){
+        const sum = pool.reduce((s, p) => s + p[1], 0);
+        let roll = Math.random() * sum;
+        for (const [v, w] of pool){
+          roll -= w;
+          if (roll <= 0) return v;
+        }
+        return pool[0][0];
+      }
+      function randomSym(){ return randWeighted(WEIGHTED); }
+      function randomMultiplier(){
+        const pool = [[2,34],[3,26],[5,20],[10,12],[15,6],[25,2]];
+        return randWeighted(pool);
+      }
+      function getBalance(){
+        const v = parseInt(localStorage.getItem(KEYS.balance) ?? DEF.balance, 10);
+        return Number.isNaN(v) ? DEF.balance : v;
+      }
+      function setBalance(v){
+        localStorage.setItem(KEYS.balance, String(v));
+        balChip.textContent = v.toLocaleString();
+      }
+      function setMsg(text, cls){
+        msgEl.textContent = text;
+        msgEl.className = "msg" + (cls ? " " + cls : "");
+      }
+      function syncFreeSpinUI(){
+        const on = freeSpins > 0;
+        fsChip.classList.toggle("active", on);
+        fsBanner.classList.toggle("active", on);
+        fsChipVal.textContent = String(freeSpins);
+        fsLeftEl.textContent = String(freeSpins);
+      }
+      function showFsFlash(text){
+        fsFlashEl.textContent = text;
+        fsFlashEl.classList.add("show");
+        setTimeout(() => fsFlashEl.classList.remove("show"), 900);
+      }
+      function loadProfile(){
+        document.getElementById("name").textContent = localStorage.getItem(KEYS.name) || DEF.name;
+        document.getElementById("avatar").textContent = localStorage.getItem(KEYS.avatar) || DEF.avatar;
+        balChip.textContent = getBalance().toLocaleString();
+      }
+      function addHistory(stake, win, note){
+        const now = new Date();
+        const ts = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        let arr = [];
+        try { arr = JSON.parse(localStorage.getItem(KEYS.history) || "[]"); } catch (_e) { arr = []; }
+        arr.unshift({ ts, stake, win, note, net: win - stake });
+        arr = arr.slice(0, 16);
+        localStorage.setItem(KEYS.history, JSON.stringify(arr));
+        renderHistory();
+      }
+      function renderHistory(){
+        let arr = [];
+        try { arr = JSON.parse(localStorage.getItem(KEYS.history) || "[]"); } catch (_e) { arr = []; }
+        if (!arr.length){
+          historyEl.innerHTML = '<li class="item"><span>暂无记录</span><span class="amt">0</span></li>';
+          return;
+        }
+        historyEl.innerHTML = arr.map(it =>
+          `<li class="item"><span>${it.ts} · 注 ${it.stake} · ${it.note}</span><span class="amt ${it.net < 0 ? "lose" : ""}">${it.net >= 0 ? "+" : ""}${it.net.toLocaleString()}</span></li>`
+        ).join("");
+      }
+
+      function newBoard(){
+        return Array.from({ length: SIZE }, () => randomSym());
+      }
+      function renderBoard(hitSet, multSet){
+        const hs = hitSet || new Set();
+        const ms = multSet || new Map();
+        boardEl.innerHTML = board.map((sym, i) => {
+          if (ms.has(i)){
+            return `<div class="cell mult ${hs.has(i) ? "hit" : ""}" data-i="${i}">x${ms.get(i)}</div>`;
+          }
+          return `<div class="cell ${hs.has(i) ? "hit" : ""}" data-i="${i}">${sym}</div>`;
+        }).join("");
+      }
+
+      function countBySymbol(arr){
+        const map = new Map();
+        for (const s of arr){ map.set(s, (map.get(s) || 0) + 1); }
+        return map;
+      }
+
+      function payoutFor(sym, count, stake){
+        const cfg = PAY[sym];
+        if (!cfg) return 0;
+        const [c1,c2,c3,c4,m1,m2,m3,m4] = cfg;
+        if (count >= c4) return Math.floor(stake * m4);
+        if (count >= c3) return Math.floor(stake * m3);
+        if (count >= c2) return Math.floor(stake * m2);
+        if (count >= c1) return Math.floor(stake * m1);
+        return 0;
+      }
+
+      function evaluateCluster(curBoard, stake){
+        const counts = countBySymbol(curBoard);
+        const remove = new Set();
+        let win = 0;
+        const notes = [];
+
+        WEIGHTED.forEach(([sym]) => {
+          const c = counts.get(sym) || 0;
+          const p = payoutFor(sym, c, stake);
+          if (p > 0){
+            win += p;
+            notes.push(`${sym}x${c}`);
+            curBoard.forEach((v, idx) => { if (v === sym) remove.add(idx); });
+          }
+        });
+        return { win, remove, notes, scatters: counts.get(SCAT) || 0 };
+      }
+
+      function cascadeFill(curBoard, removeSet){
+        const next = Array(SIZE).fill(null);
+        for (let c = 0; c < COLS; c += 1){
+          const colVals = [];
+          for (let r = ROWS - 1; r >= 0; r -= 1){
+            const idx = r * COLS + c;
+            if (!removeSet.has(idx)) colVals.push(curBoard[idx]);
+          }
+          while (colVals.length < ROWS) colVals.push(randomSym());
+          for (let r = ROWS - 1; r >= 0; r -= 1){
+            next[r * COLS + c] = colVals[ROWS - 1 - r];
+          }
+        }
+        return next;
+      }
+
+      function clearAutoTimer(){
+        if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; }
+      }
+      function scheduleAuto(){
+        if (!auto) return;
+        clearAutoTimer();
+        autoTimer = setTimeout(() => {
+          autoTimer = null;
+          if (!spinning) startSpin();
+        }, 1050);
+      }
+
+      async function spinOnce(stake, freeMode){
+        board = newBoard();
+        renderBoard();
+        await sleep(120);
+
+        let totalBaseWin = 0;
+        let totalMul = 1;
+        const notes = [];
+        let scattersFirst = 0;
+
+        for (let loop = 0; loop < 6; loop += 1){
+          const res = evaluateCluster(board, stake);
+          if (loop === 0) scattersFirst = res.scatters;
+          if (res.win <= 0 || res.remove.size === 0) break;
+
+          totalBaseWin += res.win;
+          notes.push(...res.notes);
+          renderBoard(res.remove, new Map());
+          await sleep(180);
+
+          const multCount = Math.random() < 0.55 ? 1 : (Math.random() < 0.35 ? 2 : 0);
+          const multSet = new Map();
+          for (let i = 0; i < multCount; i += 1){
+            const pick = Math.floor(Math.random() * SIZE);
+            multSet.set(pick, randomMultiplier());
+          }
+          if (multSet.size){
+            multSet.forEach(v => { totalMul += v; });
+            renderBoard(res.remove, multSet);
+            await sleep(230);
+          }
+          board = cascadeFill(board, res.remove);
+          renderBoard();
+          await sleep(180);
+        }
+
+        const totalWin = totalBaseWin > 0 ? totalBaseWin * totalMul : 0;
+        return { totalWin, totalMul, notes, scattersFirst, freeMode };
+      }
+
+      async function startSpin(){
+        if (spinning) return;
+        const stake = freeSpins > 0 ? 0 : bet;
+        const bal = getBalance();
+        if (stake > bal){
+          setMsg("余额不足，请降低下注。", "lose");
+          auto = false;
+          autoBtn.classList.remove("active");
+          autoBtn.textContent = "自动";
+          return;
+        }
+
+        spinning = true;
+        spinBtn.disabled = true;
+        winChip.textContent = "0";
+        mulChip.textContent = "x1";
+
+        if (stake > 0) setBalance(bal - stake);
+        if (freeSpins > 0){
+          freeSpins -= 1;
+          syncFreeSpinUI();
+        }
+
+        const result = await spinOnce(bet, stake === 0);
+        if (result.totalWin > 0){
+          setBalance(getBalance() + result.totalWin);
+          winChip.textContent = result.totalWin.toLocaleString();
+          mulChip.textContent = `x${result.totalMul}`;
+          setMsg(`命中 ${result.notes.slice(0, 6).join(" / ") || "组合"}，总倍率 x${result.totalMul}，赢得 ${result.totalWin.toLocaleString()}`, "win");
+        } else {
+          setMsg(result.freeMode ? "免费旋转未中奖。" : "未中奖，再试一次。", "lose");
+        }
+
+        if (result.scattersFirst >= 4){
+          freeSpins += 10;
+          syncFreeSpinUI();
+          showFsFlash("FREE SPINS +10");
+          setMsg(`触发免费旋转！获得 10 次 Free Spins（当前剩余 ${freeSpins} 次）。`, "win");
+        }
+        if (result.freeMode && freeSpins === 0){
+          showFsFlash("FREE SPINS 结束");
+          setMsg("免费旋转结束，已返回普通模式。", "");
+        }
+
+        addHistory(stake, result.totalWin, `${result.freeMode ? "FS" : "普通"}·x${result.totalMul}`);
+        spinning = false;
+        spinBtn.disabled = false;
+        scheduleAuto();
+      }
+
+      betBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          bet = Number(btn.dataset.bet);
+          betBtns.forEach(b => b.classList.toggle("active", b === btn));
+        });
+      });
+      spinBtn.addEventListener("click", startSpin);
+      autoBtn.addEventListener("click", () => {
+        auto = !auto;
+        autoBtn.classList.toggle("active", auto);
+        autoBtn.textContent = auto ? "自动中" : "自动";
+        if (!auto){
+          clearAutoTimer();
+          return;
+        }
+        if (!spinning) startSpin();
+      });
+
+      loadProfile();
+      renderHistory();
+      syncFreeSpinUI();
+      board = newBoard();
+      renderBoard();
+    })();
+  </script>
+</body>
+</html>

@@ -1567,6 +1567,14 @@ function renderBiddingUI(G) {
   const ui = document.getElementById('bidding-ui');
   if (!ui) return;
   if (G.phase==='bidding' && G.currentPlayerIdx===0) {
+    const promptEl = ui.querySelector('.bid-prompt');
+    const yesBtn = document.getElementById('btn-bid-yes');
+    const noBtn  = document.getElementById('btn-bid-no');
+    const isRob = G.biddingMode === 'rob';
+    if (promptEl) promptEl.textContent = isRob ? '💬 是否抢地主？' : '💬 是否叫地主？';
+    if (yesBtn) yesBtn.textContent = isRob ? '⚡ 抢地主' : '🙋 叫地主';
+    if (noBtn)  noBtn.textContent  = isRob ? '🙅 不抢' : '🙅 不叫';
+
     // 显示底牌提示
     ui.style.display = 'flex';
     // 显示底牌
@@ -1639,7 +1647,10 @@ function renderTurnIndicator(G) {
     el.style.display = 'block';
   } else if (G.phase==='bidding') {
     const p = G.players[G.currentPlayerIdx];
-    el.textContent = G.currentPlayerIdx===0 ? '请决定是否叫地主' : `${p.name} 考虑叫地主...`;
+    const isRob = G.biddingMode === 'rob';
+    el.textContent = G.currentPlayerIdx===0
+      ? (isRob ? '请决定是否抢地主' : '请决定是否叫地主')
+      : `${p.name} ${isRob ? '考虑抢地主' : '考虑叫地主'}...`;
     el.style.display = 'block';
   } else {
     el.style.display = 'none';

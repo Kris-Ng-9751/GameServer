@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>老虎机</title>
+  <style>
+    :root{
+      --bg1:#1a1230;
+      --bg2:#0d091b;
+      --panel:#141028;
+      --line:rgba(255,255,255,0.14);
+      --gold:#f7c948;
+      --text:#f4e8c4;
+      --muted:#9e94c7;
+      --ok:#38d98f;
+      --bad:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 15%, #352155 0%, transparent 40%),
+        radial-gradient(circle at 85% 20%, #2a1f52 0%, transparent 35%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+      display:flex;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{
+      width:min(940px,100%);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background:rgba(0,0,0,0.3);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 14px;
+    }
+    .title{
+      font-size:1.15rem;
+      font-weight:800;
+      color:var(--gold);
+      letter-spacing:.05em;
+    }
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chip{
+      font-size:.85rem;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:5px 10px;
+      background:rgba(255,255,255,0.05);
+      color:var(--muted);
+    }
+    .chip strong{color:var(--gold)}
+    .btn{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:7px 12px;
+      background:rgba(255,255,255,0.06);
+      color:#ddd;
+      cursor:pointer;
+      text-decoration:none;
+      font-size:.85rem;
+    }
+    .btn:hover{background:rgba(255,255,255,0.14)}
+    .panel{
+      background:rgba(8,7,16,0.75);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+    }
+    .content-grid{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap:12px;
+      align-items:start;
+    }
+    .right-panel{
+      background:rgba(20,16,40,0.72);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+    }
+    .profile{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:12px;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+    .avatar{
+      width:42px;height:42px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.5rem;
+      background:linear-gradient(135deg,#28456f,#234029);
+      border:2px solid var(--gold);
+    }
+    .machine{
+      border:1px solid rgba(247,201,72,0.35);
+      border-radius:16px;
+      background:linear-gradient(180deg,#2a1f47,#17122d);
+      padding:14px;
+      transition: box-shadow .25s ease, border-color .25s ease;
+    }
+    @keyframes slotWinPulse{
+      0%,100%{
+        transform:scale(1);
+      }
+      50%{
+        transform:scale(1.01);
+      }
+    }
+    .reels{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      grid-template-rows:repeat(3,1fr);
+      gap:8px;
+      margin-bottom:14px;
+    }
+    .reel{
+      height:78px;
+      border-radius:12px;
+      border:2px solid rgba(255,255,255,0.14);
+      background:linear-gradient(180deg,#09090f,#1b1b28);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:2.2rem;
+      box-shadow:inset 0 0 18px rgba(255,255,255,0.06);
+      transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .reel.win-hit{
+      border-color:rgba(255,228,120,0.95);
+      box-shadow:
+        0 0 12px rgba(255,220,110,0.85),
+        0 0 28px rgba(255,190,80,0.58),
+        inset 0 0 18px rgba(255,243,186,0.28);
+      transform:scale(1.03);
+    }
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+    }
+    .bet-list{display:flex;gap:8px;flex-wrap:wrap}
+    .bet{
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,0.06);
+      color:#ccc;
+      padding:6px 12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .bet.active{
+      color:#1a1300;
+      background:linear-gradient(135deg,#ffd76a,#f7b733);
+      border-color:#ffd76a;
+    }
+    .spin{
+      margin-left:auto;
+      border:none;
+      border-radius:10px;
+      padding:9px 18px;
+      cursor:pointer;
+      font-weight:900;
+      color:#1f1400;
+      background:linear-gradient(135deg,#ffd86e,#f4b534);
+      box-shadow:0 4px 14px rgba(244,181,52,0.4);
+    }
+    .spin:disabled{opacity:.45;cursor:not-allowed}
+    .auto-spin{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 12px;
+      cursor:pointer;
+      font-weight:700;
+      color:#cfc5f3;
+      background:rgba(255,255,255,0.06);
+    }
+    .auto-spin.active{
+      color:#1f1400;
+      border-color:#ffd76a;
+      background:linear-gradient(135deg,#ffd86e,#f4b534);
+    }
+    .msg{
+      margin-top:12px;
+      min-height:1.5em;
+      font-size:.95rem;
+      color:var(--muted);
+    }
+    .msg.win{color:var(--ok)}
+    .msg.lose{color:var(--bad)}
+    .payout{
+      margin-top:14px;
+      border-top:1px solid var(--line);
+      padding-top:12px;
+      color:var(--muted);
+      font-size:.83rem;
+      line-height:1.7;
+    }
+    .history{
+      margin-top:0;
+      border-top:none;
+      padding-top:0;
+    }
+    .history-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .history-title{
+      color:var(--gold);
+      font-size:.9rem;
+      font-weight:700;
+    }
+    .btn-mini{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,0.06);
+      color:#c9bff2;
+      border-radius:8px;
+      padding:4px 8px;
+      font-size:.75rem;
+      cursor:pointer;
+    }
+    .history-list{
+      list-style:none;
+      margin:0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-height:440px;
+      overflow:auto;
+    }
+    .history-item{
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:8px;
+      padding:6px 8px;
+      background:rgba(255,255,255,0.03);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      color:#d0c7ef;
+      font-size:.8rem;
+    }
+    .history-item .amount{
+      color:var(--ok);
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .history-item .amount.lose{
+      color:var(--bad);
+    }
+    .history-empty{
+      color:#8078a8;
+      font-size:.8rem;
+    }
+    @media (max-width: 860px){
+      .content-grid{
+        grid-template-columns:1fr;
+      }
+      .history-list{
+        max-height:220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">🎰 经典老虎机</div>
+      <div class="top-actions">
+        <span class="chip">余额 <strong id="balChip">10,000</strong></span>
+        <span class="chip">Jackpot <strong id="jackpotChip">50,000</strong></span>
+        <a href="index.html" class="btn">🏠 返回大厅</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="profile">
+        <div class="avatar" id="avatar">🀄</div>
+        <div>
+          <div id="name">玩家</div>
+          <div style="font-size:.8rem">祝你好运，转出大奖！</div>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="machine">
+          <div class="reels">
+            <div class="reel" id="reel0">🍒</div>
+            <div class="reel" id="reel1">🍋</div>
+            <div class="reel" id="reel2">🍉</div>
+            <div class="reel" id="reel3">🔔</div>
+            <div class="reel" id="reel4">💎</div>
+            <div class="reel" id="reel5">🍀</div>
+            <div class="reel" id="reel6">🍋</div>
+            <div class="reel" id="reel7">🍉</div>
+            <div class="reel" id="reel8">7️⃣</div>
+          </div>
+
+          <div class="controls">
+            <span style="color:var(--muted);font-size:.84rem">下注：</span>
+            <div class="bet-list">
+              <button class="bet active" data-bet="10">10</button>
+              <button class="bet" data-bet="50">50</button>
+              <button class="bet" data-bet="100">100</button>
+              <button class="bet" data-bet="500">500</button>
+            </div>
+          <button class="auto-spin" id="autoSpinBtn">自动旋转：关</button>
+            <button class="spin" id="spinBtn">开始旋转</button>
+          </div>
+          <div class="msg" id="msg">选择下注后点击“开始旋转”。</div>
+
+          <div class="payout">
+            三个相同（每条横线）：🍀x8 · 🍋x10 · 🍉x12 · 🔔x18 · 💎x25 · 7️⃣x50<br/>
+            两个相同（每条横线）：返还该线下注 x1.2（总下注平均分到三条线）
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="history">
+            <div class="history-head">
+              <div class="history-title">中奖记录</div>
+              <button class="btn-mini" id="clearHistoryBtn">清空</button>
+            </div>
+            <ul class="history-list" id="historyList"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const KEYS = {
+      name:'mj-player-name',
+      avatar:'mj-player-avatar',
+      balance:'mj-player-balance',
+      slotWins:'slot-win-history',
+      slotJackpot:'slot-jackpot-pool'
+    };
+    const DEFAULTS = { name:'玩家', avatar:'🀄', balance:10000 };
+    const symbols = ['🍀','🍋','🍉','🔔','💎','7️⃣'];
+    const reelEls = Array.from(document.querySelectorAll('.reel'));
+    const msgEl = document.getElementById('msg');
+    const balEl = document.getElementById('balChip');
+    const jackpotEl = document.getElementById('jackpotChip');
+    const spinBtn = document.getElementById('spinBtn');
+    const autoSpinBtn = document.getElementById('autoSpinBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const historyListEl = document.getElementById('historyList');
+    const betBtns = Array.from(document.querySelectorAll('.bet'));
+    let bet = 10;
+    let spinning = false;
+    let autoSpinOn = false;
+    let autoSpinTimer = null;
+    const maxHistory = 12;
+    const jackpotBase = 50000;
+
+    function getBalance(){
+      const v = parseInt(localStorage.getItem(KEYS.balance) ?? DEFAULTS.balance, 10);
+      return Number.isNaN(v) ? DEFAULTS.balance : v;
+    }
+    function setBalance(v){
+      localStorage.setItem(KEYS.balance, String(v));
+      renderBalance();
+    }
+    function renderBalance(){
+      balEl.textContent = getBalance().toLocaleString();
+    }
+    function getJackpot(){
+      const v = parseInt(localStorage.getItem(KEYS.slotJackpot) ?? jackpotBase, 10);
+      return Number.isNaN(v) ? jackpotBase : v;
+    }
+    function setJackpot(v){
+      localStorage.setItem(KEYS.slotJackpot, String(v));
+      renderJackpot();
+    }
+    function renderJackpot(){
+      jackpotEl.textContent = getJackpot().toLocaleString();
+    }
+    function loadProfile(){
+      document.getElementById('name').textContent = localStorage.getItem(KEYS.name) || DEFAULTS.name;
+      document.getElementById('avatar').textContent = localStorage.getItem(KEYS.avatar) || DEFAULTS.avatar;
+      renderBalance();
+      renderJackpot();
+    }
+    function getHistory(){
+      try{
+        const arr = JSON.parse(localStorage.getItem(KEYS.slotWins) || '[]');
+        return Array.isArray(arr) ? arr : [];
+      }catch(_e){
+        return [];
+      }
+    }
+    function saveHistory(arr){
+      localStorage.setItem(KEYS.slotWins, JSON.stringify(arr.slice(0, maxHistory)));
+    }
+    function addSpinRecord(symbolArr, stake, win, hitText, jackpotWin){
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const rec = {
+        ts: `${hh}:${mm}`,
+        symbols: symbolArr.join(' '),
+        hit: hitText || '',
+        jackpotWin: jackpotWin || 0,
+        stake,
+        win,
+        net: win - stake
+      };
+      const arr = getHistory();
+      arr.unshift(rec);
+      saveHistory(arr);
+      renderHistory();
+    }
+    function renderHistory(){
+      const arr = getHistory();
+      if (!arr.length){
+        historyListEl.innerHTML = '<li class="history-empty">暂无中奖记录</li>';
+        return;
+      }
+      historyListEl.innerHTML = arr.map(item => (
+        `<li class="history-item">
+          <span>${item.ts} · ${item.symbols}${item.hit ? ` · ${item.hit}` : ' · 未中奖'}${item.jackpotWin ? ' · JACKPOT' : ''} · 注 ${item.stake}</span>
+          <span class="amount ${item.net < 0 ? 'lose' : ''}">${item.net >= 0 ? '+' : ''}${Number(item.net).toLocaleString()}</span>
+        </li>`
+      )).join('');
+    }
+    function pickSymbol(){
+      const r = Math.random();
+      if (r < 0.22) return '🍀';
+      if (r < 0.42) return '🍋';
+      if (r < 0.60) return '🍉';
+      if (r < 0.77) return '🔔';
+      if (r < 0.92) return '💎';
+      return '7️⃣';
+    }
+    function evaluateLine(a,b,c,stake){
+      if (a === b && b === c){
+        const table = { '🍀':8, '🍋':10, '🍉':12, '🔔':18, '💎':25, '7️⃣':50 };
+        const mul = table[a] || 0;
+        return { win: Math.floor(stake * mul), hit:`三连 ${a}` };
+      }
+      if (a === b || b === c || a === c){
+        return { win: Math.floor(stake * 1.2), hit:'两连' };
+      }
+      return { win: 0, hit:'' };
+    }
+    function evaluateGrid(grid, stake){
+      const lineStake = Math.max(1, Math.floor(stake / 3));
+      const rows = [0,1,2].map(r => [grid[r][0], grid[r][1], grid[r][2]]);
+      let totalWin = 0;
+      const hits = [];
+      const hitRows = [];
+      rows.forEach((row, idx) => {
+        const r = evaluateLine(row[0], row[1], row[2], lineStake);
+        if (r.win > 0){
+          totalWin += r.win;
+          hits.push(`第${idx + 1}行 ${r.hit}`);
+          hitRows.push(idx);
+        }
+      });
+      let jackpotWin = 0;
+      // 中间横线 7️⃣7️⃣7️⃣ 触发 Jackpot
+      if (rows[1][0] === '7️⃣' && rows[1][1] === '7️⃣' && rows[1][2] === '7️⃣'){
+        jackpotWin = getJackpot();
+      }
+      if (totalWin > 0){
+        const allWin = totalWin + jackpotWin;
+        const extra = jackpotWin > 0 ? ` + JACKPOT ${jackpotWin.toLocaleString()}` : '';
+        return { win: allWin, lineWin: totalWin, jackpotWin, text: `🎉 命中${hits.join('，')}，赢得 ${totalWin.toLocaleString()}${extra}`, hits, hitRows };
+      }
+      if (jackpotWin > 0){
+        return { win: jackpotWin, lineWin: 0, jackpotWin, text: `💥 JACKPOT！赢得 ${jackpotWin.toLocaleString()}`, hits: ['JACKPOT'], hitRows: [1] };
+      }
+      return { win: 0, lineWin: 0, jackpotWin: 0, text: '未中奖，再接再厉。', hits: [], hitRows: [] };
+    }
+    function setMsg(text, cls){
+      msgEl.textContent = text;
+      msgEl.className = 'msg' + (cls ? ' ' + cls : '');
+    }
+    function renderAutoSpinBtn(){
+      autoSpinBtn.classList.toggle('active', autoSpinOn);
+      autoSpinBtn.textContent = `自动旋转：${autoSpinOn ? '开' : '关'}`;
+    }
+    function stopAutoSpin(withMsg){
+      autoSpinOn = false;
+      if (autoSpinTimer){
+        clearTimeout(autoSpinTimer);
+        autoSpinTimer = null;
+      }
+      renderAutoSpinBtn();
+      if (withMsg){
+        setMsg(withMsg, '');
+      }
+    }
+    function scheduleNextAutoSpin(){
+      if (!autoSpinOn) return;
+      if (autoSpinTimer) clearTimeout(autoSpinTimer);
+      autoSpinTimer = setTimeout(() => {
+        autoSpinTimer = null;
+        if (!autoSpinOn || spinning) return;
+        if (getBalance() < bet){
+          stopAutoSpin('自动旋转已停止：余额不足。');
+          return;
+        }
+        startSpin();
+      }, 2000);
+    }
+    let winFxTimer = null;
+    function triggerWinFlash(hitRows){
+      const hitIndices = new Set();
+      hitRows.forEach(r => {
+        const base = r * 3;
+        hitIndices.add(base);
+        hitIndices.add(base + 1);
+        hitIndices.add(base + 2);
+      });
+      reelEls.forEach((el, idx) => {
+        el.classList.toggle('win-hit', hitIndices.has(idx));
+      });
+      if (winFxTimer) clearTimeout(winFxTimer);
+      winFxTimer = setTimeout(() => {
+        reelEls.forEach(el => el.classList.remove('win-hit'));
+      }, 1900);
+    }
+    function startSpin(){
+      if (spinning) return;
+      const bal = getBalance();
+      if (bal < bet){
+        setMsg('余额不足，请降低下注或回大厅重置余额。', 'lose');
+        if (autoSpinOn) stopAutoSpin('自动旋转已停止：余额不足。');
+        return;
+      }
+      spinning = true;
+      spinBtn.disabled = true;
+      setBalance(bal - bet);
+      // 每局抽取一部分注额进入 Jackpot 奖池
+      setJackpot(getJackpot() + Math.max(1, Math.floor(bet * 0.08)));
+      setMsg('转轴旋转中...', '');
+
+      const timers = reelEls.map((el, idx) => {
+        return setInterval(() => {
+          el.textContent = symbols[(Math.floor(Math.random() * 1000) + idx) % symbols.length];
+        }, 60 + idx * 20);
+      });
+
+      const result = Array.from({ length: 9 }, () => pickSymbol());
+      const stopTimes = [700,900,1100,760,960,1160,820,1020,1220];
+      stopTimes.forEach((t, i) => {
+        setTimeout(() => {
+          clearInterval(timers[i]);
+          reelEls[i].textContent = result[i];
+          if (i === 8){
+            const grid = [
+              [result[0], result[1], result[2]],
+              [result[3], result[4], result[5]],
+              [result[6], result[7], result[8]]
+            ];
+            const r = evaluateGrid(grid, bet);
+            if (r.win > 0){
+              setBalance(getBalance() + r.win);
+              setMsg(r.text, 'win');
+              addSpinRecord(result, bet, r.win, r.hits.join('/'), r.jackpotWin);
+              if (r.jackpotWin > 0){
+                setJackpot(jackpotBase);
+              }
+              triggerWinFlash(r.hitRows);
+            } else {
+              reelEls.forEach(el => el.classList.remove('win-hit'));
+              setMsg(r.text, 'lose');
+              addSpinRecord(result, bet, r.win, '', 0);
+            }
+            spinning = false;
+            spinBtn.disabled = false;
+            scheduleNextAutoSpin();
+          }
+        }, t);
+      });
+    }
+
+    betBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        bet = +btn.dataset.bet;
+        betBtns.forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+    spinBtn.addEventListener('click', startSpin);
+    autoSpinBtn.addEventListener('click', () => {
+      if (autoSpinOn){
+        stopAutoSpin('自动旋转已关闭。');
+        return;
+      }
+      if (spinning) return;
+      if (getBalance() < bet){
+        setMsg('余额不足，无法开启自动旋转。', 'lose');
+        return;
+      }
+      autoSpinOn = true;
+      renderAutoSpinBtn();
+      setMsg('自动旋转已开启。', '');
+      startSpin();
+    });
+    clearHistoryBtn.addEventListener('click', () => {
+      localStorage.removeItem(KEYS.slotWins);
+      renderHistory();
+      setMsg('中奖记录已清空。', '');
+    });
+    loadProfile();
+    renderAutoSpinBtn();
+    renderHistory();
+  })();
+  </script>
+</body>
+</html>

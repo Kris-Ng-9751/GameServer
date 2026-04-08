@@ -6,84 +6,128 @@
   <title>俄罗斯方块</title>
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1724;
-      --accent:#1f8ef1;
-      --muted:#94a3b8;
-      --card:#0b1220;
+      --bg:#090b12;
+      --panel:#0a0b12;
+      --accent:#d79f70;
+      --accent-2:#9f6a40;
+      --muted:#c9ad93;
+      --text:#f2d8bf;
+      --line:rgba(215,159,112,0.35);
     }
     html,body{
       height:100%;
       margin:0;
+      overflow:hidden;
       font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,Helvetica,Arial;
-      background: linear-gradient(180deg,#071126 0%, #071a2a 100%);
-      color:#e6eef6;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(146,166,205,0.28), transparent 46%),
+        linear-gradient(180deg,#121720 0%, #090b12 62%, #090b12 100%);
+      color:var(--text);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
     }
     .wrap{
-      max-width:980px;
-      margin:28px auto;
-      display:flex;
-      gap:18px;
-      align-items:flex-start;
-      padding:20px;
-    }
-    .game {
-      background: linear-gradient(180deg,#071a2a, #071126);
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
       padding:18px;
-      border-radius:12px;
-      box-shadow: 0 6px 24px rgba(2,6,23,0.6);
+      box-sizing:border-box;
     }
     canvas{
-      background:#020617;
+      background:#050507;
       display:block;
-      border-radius:8px;
       image-rendering: pixelated;
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.02);
     }
-    .side {
-      width:260px;
-      padding:16px;
-      background: linear-gradient(180deg,#071a2a, #06101a);
-      border-radius:12px;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.5);
-      color:var(--muted);
+    .board{
+      width:min(1120px,98vw);
+      display:grid;
+      grid-template-columns:170px 1fr 340px;
+      gap:14px;
+      background:rgba(0,0,0,0.35);
+      border:2px solid var(--line);
+      box-shadow:0 14px 30px rgba(0,0,0,0.45);
+      padding:14px;
     }
-    h1{ margin:0 0 10px 0; font-size:20px; color:#dff0ff; }
-    .label{ font-size:13px; color:var(--muted); margin-top:8px; }
-    .value{ font-size:20px; color:#cfe9ff; margin-top:4px; }
-    .next-box{
-      width:120px;
-      height:120px;
-      background: linear-gradient(180deg,#091827,#061019);
-      border-radius:8px;
-      margin-top:8px;
+    .panel{
+      background:var(--panel);
+      border:2px solid var(--accent-2);
+      padding:10px;
+      min-height:520px;
+    }
+    .center{
+      background:var(--panel);
+      border:2px solid var(--accent-2);
+      padding:8px;
+      position:relative;
+    }
+    .panel-title{
+      color:var(--accent);
+      font-weight:800;
+      letter-spacing:.08em;
+      font-size:18px;
+      text-align:center;
+      margin-bottom:8px;
+    }
+    .mini-box{
+      border:2px solid var(--line);
+      background:#030305;
+      padding:6px;
+      margin-bottom:12px;
+    }
+    .mini-box canvas{
+      width:100%;
+      height:auto;
+    }
+    .next-list{
       display:flex;
-      align-items:center;
-      justify-content:center;
+      flex-direction:column;
+      gap:6px;
     }
-    .controls { font-size:13px; margin-top:12px; color:var(--muted); line-height:1.9 }
-    .footer {
+    .next-list .mini-box{
+      margin-bottom:0;
+    }
+    .stat{
       margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      letter-spacing:.04em;
+    }
+    .stat .num{
+      color:var(--text);
+      font-weight:700;
+      font-size:28px;
+      line-height:1;
+      margin-top:4px;
+      text-shadow:0 0 10px rgba(215,159,112,0.25);
+    }
+    .topbar{
       display:flex;
+      justify-content:center;
       gap:8px;
-      align-items:center;
+      margin-bottom:8px;
     }
     button{
-      background:var(--accent);
-      color:white;
-      border:none;
-      padding:8px 12px;
-      border-radius:8px;
+      background:linear-gradient(180deg,#d9ab83,#b77a4d);
+      color:#20160e;
+      border:1px solid #6f4425;
+      padding:6px 12px;
+      border-radius:2px;
+      font-weight:700;
       cursor:pointer;
-      box-shadow: 0 6px 14px rgba(31,142,241,0.12);
     }
     button.ghost{
       background:transparent;
-      border:1px solid rgba(255,255,255,0.05);
       color:var(--muted);
+      border:1px solid var(--line);
     }
+    .footer{
+      margin-top:12px;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+    }
+    .controls{ margin-top:12px; font-size:12px; line-height:1.8; color:var(--muted); }
     .overlay{
       position:fixed;
       inset:0;
@@ -94,69 +138,176 @@
       z-index:30;
     }
     .modal{
-      background: #071827;
+      background:#1a120d;
       padding:22px;
-      border-radius:12px;
+      border:2px solid var(--accent-2);
       text-align:center;
-      color:#e6f7ff;
+      color:var(--text);
       box-shadow: 0 10px 40px rgba(2,6,23,0.7);
     }
-    .muted{ color:var(--muted); font-size:14px }
-    .small{ font-size:13px; color:var(--muted) }
+    .muted{ color:var(--muted); font-size:14px; }
+    .start-modal h2{
+      margin:0 0 8px 0;
+      letter-spacing:.06em;
+      color:var(--accent);
+    }
+    .start-actions{
+      margin-top:14px;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+    }
+    .ai-picker{
+      margin-top:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:var(--muted);
+    }
+    .ai-picker .num{
+      min-width:22px;
+      text-align:center;
+      color:var(--text);
+      font-weight:700;
+    }
+    .bot-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+    }
+    .bot-card{
+      border:1px solid var(--line);
+      padding:4px;
+      background:#060608;
+    }
+    .bot-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:2px;
+      text-align:center;
+    }
+    .bot-card.dead{
+      opacity:.35;
+      filter:grayscale(0.9);
+    }
+    .right-layout{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+    }
+    .next-column{
+      width:128px;
+      flex:0 0 128px;
+    }
+    .next-title, .opponents-title{
+      color:var(--accent);
+      font-weight:800;
+      letter-spacing:.08em;
+      font-size:16px;
+      text-align:center;
+      margin-bottom:6px;
+    }
+    .opponents-column{
+      flex:1;
+    }
     @media (max-width:760px){
-      .wrap{ flex-direction:column; align-items:center; padding:14px }
-      .side{ width:100% }
+      .board{ grid-template-columns:1fr; }
+      .panel{ min-height:auto; }
+      .center{ order:-1; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="game">
-      <h1>俄罗斯方块</h1>
-      <canvas id="playfield" width="240" height="480"></canvas>
-    </div>
-
-    <aside class="side" aria-label="side panel">
-      <div>
-        <div class="label">下一个</div>
-        <div class="next-box">
-          <canvas id="next" width="100" height="100" style="image-rendering: pixelated;"></canvas>
+    <div class="board">
+      <aside class="panel" aria-label="left panel">
+        <div class="panel-title">HOLD</div>
+        <div class="mini-box">
+          <canvas id="hold" width="120" height="80"></canvas>
         </div>
-        <div class="label">分数</div>
-        <div id="score" class="value">0</div>
-
-        <div class="label">等级</div>
-        <div id="level" class="value">1</div>
-
-        <div class="label">消除行数</div>
-        <div id="lines" class="value">0</div>
-
-        <div class="label" style="margin-top:12px">操作说明</div>
+        <div class="stat">SCORE<div id="score" class="num">0</div></div>
+        <div class="stat">LEVEL<div id="level" class="num">1</div></div>
+        <div class="stat">LINES<div id="lines" class="num">0</div></div>
         <div class="controls">
           ← → : 左右移动<br/>
           ↑ : 旋转<br/>
           ↓ : 加速下落<br/>
           空格 : 直接落下<br/>
+          C : HOLD<br/>
           P : 暂停
         </div>
+      </aside>
 
+      <main class="center">
+        <div class="topbar">
+          <button id="btnReplay">REPLAY</button>
+          <button id="btnLobby" class="ghost">返回大厅</button>
+        </div>
+        <canvas id="playfield" width="240" height="480"></canvas>
         <div class="footer">
-          <button id="btnRestart">重新开始</button>
           <button id="btnPause" class="ghost">暂停</button>
         </div>
-        <div style="margin-top:12px" class="small muted">
-          Tip: 尽量把同色方块堆整齐，清行获得更多分数，等级越高下落速度越快。
+      </main>
+
+      <aside class="panel" aria-label="right panel">
+        <div class="right-layout">
+          <div class="next-column">
+            <div class="next-title">NEXT</div>
+            <div class="next-list">
+              <div class="mini-box"><canvas id="next0" width="120" height="60"></canvas></div>
+              <div class="mini-box"><canvas id="next1" width="120" height="60"></canvas></div>
+              <div class="mini-box"><canvas id="next2" width="120" height="60"></canvas></div>
+              <div class="mini-box"><canvas id="next3" width="120" height="60"></canvas></div>
+              <div class="mini-box"><canvas id="next4" width="120" height="60"></canvas></div>
+            </div>
+          </div>
+          <div class="opponents-column">
+            <div class="opponents-title">OPPONENTS</div>
+            <div id="botGrid" class="bot-grid">
+              <div id="botCard0" class="bot-card"><div class="bot-label">BOT 1</div><canvas id="bot0" width="70" height="140"></canvas></div>
+              <div id="botCard1" class="bot-card"><div class="bot-label">BOT 2</div><canvas id="bot1" width="70" height="140"></canvas></div>
+              <div id="botCard2" class="bot-card"><div class="bot-label">BOT 3</div><canvas id="bot2" width="70" height="140"></canvas></div>
+              <div id="botCard3" class="bot-card"><div class="bot-label">BOT 4</div><canvas id="bot3" width="70" height="140"></canvas></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </div>
   </div>
 
   <div id="gameOverOverlay" class="overlay" style="display:none;">
     <div class="modal">
-      <h2>游戏结束</h2>
-      <div class="muted">最终分数:</div>
+      <h2 id="overlayTitle">游戏结束</h2>
+      <div id="overlayDesc" class="muted">最终分数:</div>
       <div id="finalScore" style="font-size:28px; margin:8px 0 12px 0">0</div>
       <button id="overlayRestart">重新开始</button>
+    </div>
+  </div>
+  <div id="startOverlay" class="overlay">
+    <div class="modal start-modal">
+      <h2>TETRIS</h2>
+      <div class="muted">按 Enter 或点击开始游戏</div>
+      <div class="muted" style="margin-top:8px;">
+        ← → 移动 / ↑ 旋转 / ↓ 软降 / 空格 硬降 / C HOLD / P 暂停
+      </div>
+      <div class="ai-picker">
+        <span>AI 对手</span>
+        <button id="btnAiMinus" class="ghost">-</button>
+        <span id="aiCount" class="num">2</span>
+        <button id="btnAiPlus" class="ghost">+</button>
+        <span>（最多4个）</span>
+      </div>
+      <div class="start-actions">
+        <button id="btnStart">开始游戏</button>
+      </div>
+    </div>
+  </div>
+  <div id="countdownOverlay" class="overlay" style="display:none;">
+    <div class="modal start-modal">
+      <h2>准备开始</h2>
+      <div class="muted">倒计时</div>
+      <div id="countdownValue" style="font-size:56px; font-weight:800; margin-top:8px;">5</div>
     </div>
   </div>
 
@@ -172,17 +323,32 @@
     // DOM
     const playfieldCanvas = document.getElementById('playfield');
     const ctx = playfieldCanvas.getContext('2d');
-    const nextCanvas = document.getElementById('next');
-    const ctxNext = nextCanvas.getContext('2d');
+    const holdCanvas = document.getElementById('hold');
+    const holdCtx = holdCanvas.getContext('2d');
+    const nextCanvases = [0,1,2,3,4].map((i)=>document.getElementById(`next${i}`));
+    const nextCtxList = nextCanvases.map((canvas)=>canvas.getContext('2d'));
 
     const scoreEl = document.getElementById('score');
     const levelEl = document.getElementById('level');
     const linesEl = document.getElementById('lines');
-    const btnRestart = document.getElementById('btnRestart');
+    const btnReplay = document.getElementById('btnReplay');
+    const btnLobby = document.getElementById('btnLobby');
     const btnPause = document.getElementById('btnPause');
     const overlay = document.getElementById('gameOverOverlay');
+    const startOverlay = document.getElementById('startOverlay');
+    const countdownOverlay = document.getElementById('countdownOverlay');
+    const countdownValueEl = document.getElementById('countdownValue');
+    const overlayTitleEl = document.getElementById('overlayTitle');
+    const overlayDescEl = document.getElementById('overlayDesc');
     const finalScoreEl = document.getElementById('finalScore');
     const overlayRestart = document.getElementById('overlayRestart');
+    const btnStart = document.getElementById('btnStart');
+    const aiCountEl = document.getElementById('aiCount');
+    const btnAiMinus = document.getElementById('btnAiMinus');
+    const btnAiPlus = document.getElementById('btnAiPlus');
+    const botCards = [0,1,2,3].map((i)=>document.getElementById(`botCard${i}`));
+    const botCanvases = [0,1,2,3].map((i)=>document.getElementById(`bot${i}`));
+    const botCtxList = botCanvases.map((canvas)=>canvas.getContext('2d'));
 
     // Resize canvases to match block size for crisp pixel rendering
     playfieldCanvas.width = PLAY_W;
@@ -190,8 +356,16 @@
     playfieldCanvas.style.width = (PLAY_W) + 'px';
     playfieldCanvas.style.height = (PLAY_H) + 'px';
 
-    nextCanvas.width = 100;
-    nextCanvas.height = 100;
+    holdCanvas.width = 120;
+    holdCanvas.height = 80;
+    nextCanvases.forEach((canvas)=>{
+      canvas.width = 120;
+      canvas.height = 60;
+    });
+    botCanvases.forEach((canvas)=>{
+      canvas.width = 70;
+      canvas.height = 140;
+    });
 
     // Tetromino definitions (4x4 matrices)
     const TETROMINOES = {
@@ -277,21 +451,44 @@
       O: '#ffd54a',
       S: '#4ce27a',
       T: '#b46cff',
-      Z: '#ff5c7c'
+      Z: '#ff5c7c',
+      G: '#7d8599'
     };
 
     // Game state
     let arena = createMatrix(COLS, ROWS); // grid [x][y] or we will use matrix[y][x]
     let current = null;
-    let next = null;
+    let holdName = null;
+    let nextQueue = [];
+    let bag = [];
+    let canHold = true;
     let dropCounter = 0;
     let dropInterval = 1000; // ms
     let lastTime = 0;
+    let animationFrameId = null;
     let score = 0;
     let level = 1;
     let lines = 0;
+    let combo = -1;
+    let b2b = false;
+    let incomingGarbage = 0;
+    let started = false;
     let paused = false;
     let gameOver = false;
+    let countdownActive = false;
+    let countdownTimerId = null;
+    let aiCount = 2;
+    let bots = [];
+    const DAS = 140; // ms before auto-shift starts
+    const ARR = 35;  // ms per repeated horizontal move
+    const DOWN_ARR = 45; // ms per repeated soft drop
+    const ROTATE_ARR = 120; // ms per repeated rotate
+    let horizontalDir = 0;
+    let horizontalCharge = 0;
+    let downHeld = false;
+    let downCharge = 0;
+    let upHeld = false;
+    let upCharge = 0;
 
     // Utilities
     function createMatrix(w,h){
@@ -302,14 +499,16 @@
       return m;
     }
 
-    function randomChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function shuffle(arr){
+      for (let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
 
-    function newPiece(){
-      const keys = Object.keys(TETROMINOES);
-      const name = randomChoice(keys);
+    function createPieceByName(name){
       const shapes = TETROMINOES[name];
-      const shape = shapes[0]; // use rotation 0 initial
-      // piece object: name, rotation index, shapes array, x,y
       return {
         name,
         shapes,
@@ -320,24 +519,255 @@
       };
     }
 
-    function rotateMatrix(matrix, dir=1){
-      // rotate 90deg clockwise if dir>0 else counter-clockwise
-      const N = matrix.length;
-      const res = [];
-      for (let y=0;y<N;y++){
-        res[y] = new Array(N).fill(0);
+    function pullFromBag(){
+      if (bag.length === 0){
+        bag = shuffle(Object.keys(TETROMINOES).slice());
       }
-      for (let y=0;y<N;y++){
-        for (let x=0;x<N;x++){
-          if (dir>0){
-            res[x][N-1-y] = matrix[y][x];
-          } else {
-            res[N-1-x][y] = matrix[y][x];
+      return bag.pop();
+    }
+
+    function ensureNextQueue(){
+      while (nextQueue.length < 5){
+        nextQueue.push(pullFromBag());
+      }
+    }
+
+    function newBot(index){
+      return {
+        id: index,
+        arena: createMatrix(COLS, ROWS),
+        current: null,
+        bag: [],
+        nextQueue: [],
+        dropCounter: 0,
+        dropInterval: 250 + index * 70,
+        lines: 0,
+        combo: -1,
+        b2b: false,
+        incomingGarbage: 0,
+        alive: true
+      };
+    }
+
+    function pullFromBotBag(bot){
+      if (bot.bag.length === 0){
+        bot.bag = shuffle(Object.keys(TETROMINOES).slice());
+      }
+      return bot.bag.pop();
+    }
+
+    function ensureBotQueue(bot){
+      while (bot.nextQueue.length < 3){
+        bot.nextQueue.push(pullFromBotBag(bot));
+      }
+    }
+
+    function spawnBotPiece(bot){
+      ensureBotQueue(bot);
+      bot.current = createPieceByName(bot.nextQueue.shift());
+      ensureBotQueue(bot);
+      bot.current.x = Math.floor((COLS - bot.current.matrix[0].length) / 2);
+      bot.current.y = -Math.max(0, bot.current.matrix.length - 2);
+      if (collide(bot.arena, bot.current)){
+        bot.alive = false;
+      }
+    }
+
+    function sweepArena(targetArena){
+      let cleared = 0;
+      outer: for (let y = ROWS - 1; y >= 0; y--){
+        for (let x = 0; x < COLS; x++){
+          if (!targetArena[y][x]){
+            continue outer;
+          }
+        }
+        targetArena.splice(y,1);
+        targetArena.unshift(new Array(COLS).fill(0));
+        y++;
+        cleared++;
+      }
+      return cleared;
+    }
+
+    function getComboBonus(comboCount){
+      if (comboCount <= 0) return 0;
+      if (comboCount <= 2) return 1;
+      if (comboCount <= 4) return 2;
+      if (comboCount <= 6) return 3;
+      return 4;
+    }
+
+    function calcAttack(cleared, isB2B, comboCount){
+      const base = [0, 0, 1, 2, 4];
+      let attack = base[cleared] || 0;
+      if (cleared === 4 && isB2B){
+        attack += 2;
+      }
+      attack += getComboBonus(comboCount);
+      return attack;
+    }
+
+    function addGarbageLines(targetArena, amount){
+      let toppedOut = false;
+      for (let i = 0; i < amount; i++){
+        const removed = targetArena.shift();
+        if (removed.some(Boolean)){
+          toppedOut = true;
+        }
+        const hole = Math.floor(Math.random() * COLS);
+        const garbage = new Array(COLS).fill('G');
+        garbage[hole] = 0;
+        targetArena.push(garbage);
+      }
+      return toppedOut;
+    }
+
+    function aliveBots(){
+      return bots.filter((b)=>b.alive);
+    }
+
+    function sendGarbageToRandomBot(amount){
+      if (amount <= 0) return;
+      const living = aliveBots();
+      if (living.length === 0) return;
+      const target = living[Math.floor(Math.random() * living.length)];
+      target.incomingGarbage += amount;
+    }
+
+    function sendGarbageToPlayer(amount){
+      if (amount <= 0 || gameOver) return;
+      incomingGarbage += amount;
+    }
+
+    function sendGarbageFromBot(bot, amount){
+      if (amount <= 0) return;
+      const targets = [];
+      if (!gameOver){
+        targets.push({ type: 'player' });
+      }
+      for (const other of bots){
+        if (!other.alive) continue;
+        if (other === bot) continue;
+        targets.push({ type: 'bot', ref: other });
+      }
+      if (targets.length === 0) return;
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      if (target.type === 'player'){
+        sendGarbageToPlayer(amount);
+      } else {
+        target.ref.incomingGarbage += amount;
+      }
+    }
+
+    function botDropToBottom(bot){
+      while (!collide(bot.arena, bot.current)){
+        bot.current.y++;
+      }
+      bot.current.y--;
+      merge(bot.arena, bot.current);
+      const cleared = sweepArena(bot.arena);
+      bot.lines += cleared;
+      if (cleared > 0){
+        bot.combo++;
+        const isB2B = bot.b2b && cleared === 4;
+        const attack = calcAttack(cleared, isB2B, bot.combo);
+        bot.b2b = cleared === 4;
+        sendGarbageFromBot(bot, attack);
+      } else {
+        bot.combo = -1;
+      }
+      if (bot.incomingGarbage > 0){
+        const dead = addGarbageLines(bot.arena, bot.incomingGarbage);
+        bot.incomingGarbage = 0;
+        if (dead){
+          bot.alive = false;
+          return;
+        }
+      }
+      spawnBotPiece(bot);
+    }
+
+    function scoreBotPlacement(arenaMatrix){
+      let heightSum = 0;
+      let holes = 0;
+      let bumpiness = 0;
+      let prevHeight = 0;
+      for (let x = 0; x < COLS; x++){
+        let colHeight = 0;
+        let seenBlock = false;
+        for (let y = 0; y < ROWS; y++){
+          if (arenaMatrix[y][x]){
+            if (!seenBlock){
+              colHeight = ROWS - y;
+              seenBlock = true;
+            }
+          } else if (seenBlock){
+            holes++;
+          }
+        }
+        heightSum += colHeight;
+        if (x > 0) bumpiness += Math.abs(colHeight - prevHeight);
+        prevHeight = colHeight;
+      }
+      return -(heightSum * 0.55 + holes * 2.3 + bumpiness * 0.35);
+    }
+
+    function chooseBotMove(bot){
+      if (!bot.current) return;
+      const name = bot.current.name;
+      const rotations = TETROMINOES[name];
+      let best = null;
+
+      for (let r = 0; r < rotations.length; r++){
+        const matrix = rotations[r];
+        const width = matrix[0].length;
+        for (let x = -2; x <= COLS - width + 2; x++){
+          const testPiece = {
+            name,
+            matrix,
+            x,
+            y: -2
+          };
+          if (collide(bot.arena, testPiece)) continue;
+          while (!collide(bot.arena, testPiece)){
+            testPiece.y++;
+          }
+          testPiece.y--;
+          if (testPiece.y < -1) continue;
+
+          const snapshot = bot.arena.map((row)=>row.slice());
+          merge(snapshot, testPiece);
+          sweepArena(snapshot);
+          const s = scoreBotPlacement(snapshot);
+          if (!best || s > best.score){
+            best = { score: s, x, matrix };
           }
         }
       }
-      // trim rows/cols if shape isn't square? We'll keep square handling per definitions
-      return res;
+
+      if (best){
+        bot.current.matrix = best.matrix.map((row)=>row.slice());
+        bot.current.x = best.x;
+        bot.current.y = -2;
+      }
+    }
+
+    function updateBots(dt){
+      for (const bot of bots){
+        if (!bot.alive) continue;
+        if (!bot.current){
+          spawnBotPiece(bot);
+          if (!bot.alive) continue;
+          chooseBotMove(bot);
+        }
+        bot.dropCounter += dt;
+        if (bot.dropCounter >= bot.dropInterval){
+          bot.dropCounter = 0;
+          botDropToBottom(bot);
+          if (bot.alive) chooseBotMove(bot);
+        }
+      }
+      drawBots();
     }
 
     function merge(arena, piece){
@@ -380,7 +810,7 @@
           }
         }
         // row y is full, remove it
-        const row = arena.splice(y,1)[0];
+        arena.splice(y,1);
         arena.unshift(new Array(COLS).fill(0));
         y++; // recheck same y because rows shifted down
         rowCount++;
@@ -398,7 +828,11 @@
           dropInterval = Math.max(100, 1000 - (level-1)*80);
         }
         updateHud();
+        combo++;
+      } else {
+        combo = -1;
       }
+      return rowCount;
     }
 
     function updateHud(){
@@ -407,29 +841,127 @@
       linesEl.textContent = lines;
     }
 
+    function setAiCount(value){
+      aiCount = Math.max(1, Math.min(4, value));
+      aiCountEl.textContent = aiCount;
+    }
+
+    function initBots(){
+      bots = [];
+      for (let i = 0; i < aiCount; i++){
+        bots.push(newBot(i));
+      }
+      drawBots();
+    }
+
+    function aliveBotCount(){
+      let n = 0;
+      for (const bot of bots){
+        if (bot.alive) n++;
+      }
+      return n;
+    }
+
     function reset(){
       arena = createMatrix(COLS,ROWS);
       score = 0;
       level = 1;
       lines = 0;
+      combo = -1;
+      b2b = false;
+      incomingGarbage = 0;
       dropInterval = 1000;
       gameOver = false;
       paused = false;
       current = null;
-      next = newPiece();
+      holdName = null;
+      canHold = true;
+      bag = [];
+      nextQueue = [];
+      ensureNextQueue();
       spawnPiece();
       updateHud();
+      startOverlay.style.display = 'none';
       overlay.style.display = 'none';
       btnPause.textContent = '暂停';
       btnPause.classList.add('ghost');
       lastTime = performance.now();
       dropCounter = 0;
-      loop(lastTime);
+      horizontalDir = 0;
+      horizontalCharge = 0;
+      downHeld = false;
+      downCharge = 0;
+      upHeld = false;
+      upCharge = 0;
+      initBots();
+      startLoop();
+    }
+
+    function beginGame(){
+      started = false;
+      countdownActive = true;
+      stopLoop();
+      overlay.style.display = 'none';
+      startOverlay.style.display = 'none';
+      countdownOverlay.style.display = 'flex';
+      let countdown = 5;
+      countdownValueEl.textContent = countdown;
+      if (countdownTimerId !== null){
+        clearInterval(countdownTimerId);
+      }
+      countdownTimerId = setInterval(()=>{
+        countdown--;
+        if (countdown <= 0){
+          clearInterval(countdownTimerId);
+          countdownTimerId = null;
+          countdownActive = false;
+          countdownOverlay.style.display = 'none';
+          started = true;
+          reset();
+          return;
+        }
+        countdownValueEl.textContent = countdown;
+      }, 1000);
+    }
+
+    function showStartScreen(){
+      started = false;
+      countdownActive = false;
+      paused = true;
+      gameOver = false;
+      stopLoop();
+      if (countdownTimerId !== null){
+        clearInterval(countdownTimerId);
+        countdownTimerId = null;
+      }
+      arena = createMatrix(COLS,ROWS);
+      current = null;
+      holdName = null;
+      nextQueue = [];
+      score = 0;
+      level = 1;
+      lines = 0;
+      combo = -1;
+      b2b = false;
+      incomingGarbage = 0;
+      bots = [];
+      updateHud();
+      draw();
+      drawHold();
+      drawNextQueue();
+      drawBots();
+      overlay.style.display = 'none';
+      countdownOverlay.style.display = 'none';
+      startOverlay.style.display = 'flex';
+      btnPause.textContent = '暂停';
+      btnPause.classList.add('ghost');
     }
 
     function spawnPiece(){
-      current = next || newPiece();
-      next = newPiece();
+      ensureNextQueue();
+      current = createPieceByName(nextQueue.shift());
+      ensureNextQueue();
+      canHold = true;
       current.x = Math.floor((COLS - current.matrix[0].length)/2);
       current.y = -Math.max(0, current.matrix.length - 2);
       if (collide(arena, current)){
@@ -438,12 +970,33 @@
         pauseGame();
         showGameOver();
       }
-      drawNext();
+      drawHold();
+      drawNextQueue();
     }
 
     function showGameOver(){
+      const botsAlive = aliveBotCount();
+      if (gameOver && botsAlive > 0){
+        overlayTitleEl.textContent = '你失败了';
+        overlayDescEl.textContent = `仍有 ${botsAlive} 个 AI 存活`;
+      } else if (botsAlive === 0 && started){
+        overlayTitleEl.textContent = '你胜利了';
+        overlayDescEl.textContent = '所有 AI 已被淘汰';
+      } else {
+        overlayTitleEl.textContent = '游戏结束';
+        overlayDescEl.textContent = '最终分数:';
+      }
       overlay.style.display = 'flex';
       finalScoreEl.textContent = score;
+    }
+
+    function checkBattleResult(){
+      if (!started || gameOver) return;
+      if (aliveBotCount() === 0){
+        paused = true;
+        stopLoop();
+        showGameOver();
+      }
     }
 
     function move(dir){
@@ -473,8 +1026,48 @@
 
     function lockPiece(){
       merge(arena, current);
-      sweep();
+      const cleared = sweep();
+      if (cleared > 0){
+        const isB2B = b2b && cleared === 4;
+        const attack = calcAttack(cleared, isB2B, combo);
+        b2b = cleared === 4;
+        sendGarbageToRandomBot(attack);
+      } else {
+        b2b = false;
+      }
+      if (incomingGarbage > 0){
+        const dead = addGarbageLines(arena, incomingGarbage);
+        incomingGarbage = 0;
+        if (dead){
+          gameOver = true;
+          pauseGame();
+          showGameOver();
+          return;
+        }
+      }
       spawnPiece();
+    }
+
+    function holdSwap(){
+      if (!current || !canHold || paused || gameOver) return;
+      const activeName = current.name;
+      if (holdName === null){
+        holdName = activeName;
+        spawnPiece();
+      } else {
+        current = createPieceByName(holdName);
+        holdName = activeName;
+        current.x = Math.floor((COLS - current.matrix[0].length)/2);
+        current.y = -Math.max(0, current.matrix.length - 2);
+        if (collide(arena, current)){
+          gameOver = true;
+          pauseGame();
+          showGameOver();
+        }
+        drawHold();
+        drawNextQueue();
+      }
+      canHold = false;
     }
 
     function rotate(dir){
@@ -506,6 +1099,17 @@
       }
     }
 
+    function getGhostY(piece){
+      const ghost = {
+        ...piece,
+        matrix: piece.matrix
+      };
+      while (!collide(arena, ghost)){
+        ghost.y++;
+      }
+      return ghost.y - 1;
+    }
+
     // Drawing
     function draw(){
       // clear
@@ -520,13 +1124,27 @@
           }
         }
       }
+      // draw ghost piece (landing preview)
+      if (current){
+        const ghostY = getGhostY(current);
+        if (ghostY !== current.y){
+          const m = current.matrix;
+          for (let y=0;y<m.length;y++){
+            for (let x=0;x<m[y].length;x++){
+              if (m[y][x]){
+                drawBlock(current.x + x, ghostY + y, COLORS[current.name], true);
+              }
+            }
+          }
+        }
+      }
       // draw current piece
       if (current){
         const m = current.matrix;
         for (let y=0;y<m.length;y++){
           for (let x=0;x<m[y].length;x++){
             if (m[y][x]){
-              drawBlock(current.x + x, current.y + y, COLORS[current.name], true);
+              drawBlock(current.x + x, current.y + y, COLORS[current.name], false);
             }
           }
         }
@@ -552,6 +1170,12 @@
     function drawBlock(px,py,color,ghost=false){
       const x = px * BLOCK;
       const y = py * BLOCK;
+      if (ghost){
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 3.5, y + 3.5, BLOCK - 7, BLOCK - 7);
+        return;
+      }
       // draw main rect
       ctx.fillStyle = color;
       ctx.fillRect(x+1,y+1,BLOCK-2,BLOCK-2);
@@ -564,25 +1188,65 @@
       ctx.strokeRect(x+1.5,y+1.5,BLOCK-3,BLOCK-3);
     }
 
-    function drawNext(){
-      // clear
-      ctxNext.clearRect(0,0,nextCanvas.width,nextCanvas.height);
-      // center next piece in canvas
-      if (!next) return;
-      const m = next.matrix;
-      const size = m.length;
-      const scale = Math.min(nextCanvas.width / (size*BLOCK), nextCanvas.height / (size*BLOCK));
-      const s = Math.floor(scale * BLOCK);
-      const offsetX = Math.floor((nextCanvas.width - s*size) / 2);
-      const offsetY = Math.floor((nextCanvas.height - s*size) / 2);
+    function drawPreview(ctx2d, canvas, name){
+      ctx2d.clearRect(0,0,canvas.width,canvas.height);
+      if (!name) return;
+      const m = TETROMINOES[name][0];
+      const rows = m.length;
+      const cols = m[0].length;
+      const blockSize = Math.floor(Math.min(canvas.width / (cols + 1), canvas.height / (rows + 1)));
+      const totalW = cols * blockSize;
+      const totalH = rows * blockSize;
+      const offsetX = Math.floor((canvas.width - totalW) / 2);
+      const offsetY = Math.floor((canvas.height - totalH) / 2);
 
-      for (let y=0;y<size;y++){
-        for (let x=0;x<size;x++){
-          if (m[y][x]){
-            ctxNext.fillStyle = COLORS[next.name];
-            ctxNext.fillRect(offsetX + x*s + 1, offsetY + y*s + 1, s-2, s-2);
-            ctxNext.strokeStyle = 'rgba(0,0,0,0.25)';
-            ctxNext.strokeRect(offsetX + x*s + 1.5, offsetY + y*s + 1.5, s-3, s-3);
+      for (let y = 0; y < rows; y++){
+        for (let x = 0; x < cols; x++){
+          if (!m[y][x]) continue;
+          const px = offsetX + x * blockSize;
+          const py = offsetY + y * blockSize;
+          ctx2d.fillStyle = COLORS[name];
+          ctx2d.fillRect(px + 1, py + 1, blockSize - 2, blockSize - 2);
+          ctx2d.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx2d.fillRect(px + 2, py + 2, blockSize - 4, Math.max(1, blockSize / 6));
+          ctx2d.strokeStyle = 'rgba(0,0,0,0.28)';
+          ctx2d.strokeRect(px + 1.5, py + 1.5, blockSize - 3, blockSize - 3);
+        }
+      }
+    }
+
+    function drawHold(){
+      drawPreview(holdCtx, holdCanvas, holdName);
+    }
+
+    function drawNextQueue(){
+      for (let i = 0; i < nextCtxList.length; i++){
+        drawPreview(nextCtxList[i], nextCanvases[i], nextQueue[i] || null);
+      }
+    }
+
+    function drawBots(){
+      for (let i = 0; i < botCtxList.length; i++){
+        const bot = bots[i];
+        const card = botCards[i];
+        const bctx = botCtxList[i];
+        const canvas = botCanvases[i];
+        if (!bot){
+          card.style.display = 'none';
+          continue;
+        }
+        card.style.display = 'block';
+        card.classList.toggle('dead', !bot.alive);
+        bctx.clearRect(0,0,canvas.width,canvas.height);
+        bctx.fillStyle = '#030305';
+        bctx.fillRect(0,0,canvas.width,canvas.height);
+        const s = Math.floor(canvas.width / COLS);
+        for (let y = 0; y < ROWS; y++){
+          for (let x = 0; x < COLS; x++){
+            const cell = bot.arena[y][x];
+            if (!cell) continue;
+            bctx.fillStyle = COLORS[cell];
+            bctx.fillRect(x * s, y * s, s - 1, s - 1);
           }
         }
       }
@@ -590,10 +1254,41 @@
 
     // Main loop
     function loop(time = 0){
-      if (gameOver) return;
+      if (gameOver){
+        animationFrameId = null;
+        return;
+      }
       const dt = time - lastTime;
       lastTime = time;
       if (!paused){
+        updateBots(dt);
+        if (horizontalDir !== 0 && current){
+          horizontalCharge += dt;
+          if (horizontalCharge >= DAS){
+            const repeatTime = horizontalCharge - DAS;
+            const steps = Math.floor(repeatTime / ARR);
+            for (let i = 0; i < steps; i++){
+              move(horizontalDir);
+            }
+            horizontalCharge = DAS + (repeatTime % ARR);
+          }
+        }
+        if (downHeld && current){
+          downCharge += dt;
+          while (downCharge >= DOWN_ARR){
+            downCharge -= DOWN_ARR;
+            softDrop();
+            if (!current || gameOver) break;
+          }
+        }
+        if (upHeld && current){
+          upCharge += dt;
+          while (upCharge >= ROTATE_ARR){
+            upCharge -= ROTATE_ARR;
+            rotate(1);
+            if (!current || gameOver) break;
+          }
+        }
         dropCounter += dt;
         if (dropCounter > dropInterval){
           dropCounter = 0;
@@ -602,62 +1297,123 @@
           }
         }
         draw();
+        checkBattleResult();
       }
-      requestAnimationFrame(loop);
+      animationFrameId = requestAnimationFrame(loop);
+    }
+
+    function startLoop(){
+      if (animationFrameId !== null) return;
+      animationFrameId = requestAnimationFrame(loop);
+    }
+
+    function stopLoop(){
+      if (animationFrameId === null) return;
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
     }
 
     // Input
-    const keyState = {};
     window.addEventListener('keydown', (e)=>{
-      if (e.repeat) return; // ignore hold repeats for some keys; we handle soft drop via timer
       const key = e.key;
+      if (!started){
+        if (!countdownActive && key === 'Enter'){
+          e.preventDefault();
+          beginGame();
+        }
+        return;
+      }
       if (key === 'ArrowLeft'){
         e.preventDefault();
-        if (!paused && current) move(-1);
+        if (paused || !current) return;
+        if (horizontalDir !== -1){
+          horizontalDir = -1;
+          horizontalCharge = 0;
+          move(-1);
+        }
         draw();
       } else if (key === 'ArrowRight'){
         e.preventDefault();
-        if (!paused && current) move(1);
+        if (paused || !current) return;
+        if (horizontalDir !== 1){
+          horizontalDir = 1;
+          horizontalCharge = 0;
+          move(1);
+        }
         draw();
       } else if (key === 'ArrowUp'){
         e.preventDefault();
-        if (!paused && current) rotate(1);
+        if (paused || !current) return;
+        if (!upHeld){
+          upHeld = true;
+          upCharge = 0;
+          rotate(1);
+        }
         draw();
       } else if (key === 'ArrowDown'){
         e.preventDefault();
-        if (!paused && current){
-          // soft drop one cell
+        if (paused || !current) return;
+        if (!downHeld){
+          downHeld = true;
+          downCharge = 0;
           softDrop();
-          draw();
         }
+        draw();
       } else if (key === ' '){ // space hard drop
+        if (e.repeat) return;
         e.preventDefault();
         if (!paused && current) {
           hardDrop();
           draw();
         }
+      } else if (key.toLowerCase() === 'c'){
+        if (e.repeat) return;
+        e.preventDefault();
+        holdSwap();
+        draw();
       } else if (key.toLowerCase() === 'p'){
+        if (e.repeat) return;
         e.preventDefault();
         togglePause();
       }
     });
+    window.addEventListener('keyup', (e)=>{
+      if (e.key === 'ArrowLeft' && horizontalDir === -1){
+        horizontalDir = 0;
+        horizontalCharge = 0;
+      } else if (e.key === 'ArrowRight' && horizontalDir === 1){
+        horizontalDir = 0;
+        horizontalCharge = 0;
+      } else if (e.key === 'ArrowDown'){
+        downHeld = false;
+        downCharge = 0;
+      } else if (e.key === 'ArrowUp'){
+        upHeld = false;
+        upCharge = 0;
+      }
+    });
 
     // Buttons
-    btnRestart.addEventListener('click', ()=>{ reset(); });
-    overlayRestart.addEventListener('click', ()=>{ reset(); });
+    btnReplay.addEventListener('click', ()=>{ beginGame(); });
+    btnLobby.addEventListener('click', ()=>{ window.location.href = 'index.html'; });
+    overlayRestart.addEventListener('click', ()=>{ beginGame(); });
+    btnStart.addEventListener('click', ()=>{ beginGame(); });
+    btnAiMinus.addEventListener('click', ()=>{ setAiCount(aiCount - 1); });
+    btnAiPlus.addEventListener('click', ()=>{ setAiCount(aiCount + 1); });
     btnPause.addEventListener('click', ()=>{ togglePause(); });
 
     function togglePause(){
-      if (gameOver) return;
+      if (!started || gameOver) return;
       paused = !paused;
       if (paused){
         btnPause.textContent = '继续';
         btnPause.classList.remove('ghost');
+        stopLoop();
       } else {
         btnPause.textContent = '暂停';
         btnPause.classList.add('ghost');
         lastTime = performance.now();
-        loop(lastTime);
+        startLoop();
       }
     }
 
@@ -665,26 +1421,31 @@
       paused = true;
       btnPause.textContent = '继续';
       btnPause.classList.remove('ghost');
+      stopLoop();
     }
 
-    // Start game
-    reset();
+    // Start screen
+    setAiCount(aiCount);
+    showStartScreen();
 
     // touch controls (optional minimal): swipe/drag for mobile
     (function addTouchControls(){
       let startX=0, startY=0, startTime=0;
       const el = playfieldCanvas;
       el.addEventListener('touchstart', (e)=>{
+        e.preventDefault();
         const t = e.touches[0];
         startX = t.clientX;
         startY = t.clientY;
         startTime = Date.now();
-      });
+      }, { passive: false });
       el.addEventListener('touchend', (e)=>{
+        e.preventDefault();
         const t = e.changedTouches[0];
         const dx = t.clientX - startX;
         const dy = t.clientY - startY;
         const dt = Date.now() - startTime;
+        if (!started) return;
         if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)){
           // horizontal swipe
           if (dx > 0){
@@ -709,7 +1470,7 @@
           if (!paused) hardDrop();
           draw();
         }
-      });
+      }, { passive: false });
     })();
 
   })();
