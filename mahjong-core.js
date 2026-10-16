@@ -264,4 +264,3 @@ window.MJ = {
   isWinningHand,
   chooseAiDiscard,
 };
-

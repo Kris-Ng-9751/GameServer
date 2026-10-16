@@ -19,11 +19,18 @@ const AI_WEST  = "W";     // 西家 AI
 const AI_NORTH = "N";     // 北家 AI
 
 // ── 座位全名（骰子/日誌顯示用）── 須在 PLAYER_SOUTH/AI_EAST/AI_WEST/AI_NORTH 之後定義
+// 依出牌順序命名：南(你) → 西(下家) → 北(對家) → 東(上家)
+// 所有顯示名稱、頭像、座位關係都只從這裡讀取，避免 HTML / 日誌 / 結算對不上
+const SEAT_INFO = {
+  [AI_WEST]:  { name: "人機 1", avatar: "🦁", role: "下家" },
+  [AI_NORTH]: { name: "人機 2", avatar: "🤖", role: "對家" },
+  [AI_EAST]:  { name: "人機 3", avatar: "🐯", role: "上家" },
+};
 const SEAT_NAMES_FULL = {
   [PLAYER_SOUTH]: "南家（你）", // 動態由 playerName 覆蓋
-  [AI_EAST]:      "人機 2",
-  [AI_WEST]:      "人機 1",
-  [AI_NORTH]:     "人機 3",
+  [AI_EAST]:      SEAT_INFO[AI_EAST].name,
+  [AI_WEST]:      SEAT_INFO[AI_WEST].name,
+  [AI_NORTH]:     SEAT_INFO[AI_NORTH].name,
 };
 const DIE_CHARS = ["⚀","⚁","⚂","⚃","⚄","⚅"]; // Unicode 骰子字元
 // 骰子順序：索引 0=南, 1=東, 2=北, 3=西（依骰子點數 mod 4 對應座位）
@@ -83,7 +90,7 @@ let scores = {
 let claimOptions = { chi: false, peng: false, gang: false, chiOptions: [] };
 let kbdSelIdx = -1; // 鍵盤方向鍵選中的手牌索引（-1 = 未選）
 let currentTurn = PLAYER_SOUTH;
-let dealerPlayer = PLAYER_SOUTH; // 本局庄家（先手）
+let dealerPlayer = PLAYER_SOUTH; // 本局莊家（先手）
 let drawnThisTurn = false;
 let gameOver = false;
 let afterKongDraw = false; // 槓後補牌（嶺上開花用）
@@ -249,9 +256,9 @@ function fitTable() {
   const naturalH = table.offsetHeight;
   if (!naturalW || !naturalH) return;
 
-  const scale = Math.min(1, availW / naturalW, availH / naturalH);
+  const scale = Math.min(1.45, availW / naturalW, availH / naturalH);
 
-  if (scale < 0.999) {
+  if (Math.abs(scale - 1) > 0.001) {
     wrapper.style.transform = `scale(${scale.toFixed(4)})`;
     // 壓縮後高度折疊，避免頁面出現多餘空白
     wrapper.style.height = Math.round(naturalH * scale) + "px";
@@ -276,7 +283,7 @@ const btnRecommend = document.getElementById("btn-recommend");
 btnNewGame.addEventListener("click", () => {
   if (sessionOver) { goHomeAfterBankrupt(); } else { startNewGame(); }
 });
-if (btnDraw) btnDraw.addEventListener("click", onPlayerDraw);
+if (btnDraw) btnDraw.addEventListener("click", () => onPlayerDraw());
 btnWin.addEventListener("click", onPlayerWinAttempt);
 btnChi.addEventListener("click", onPlayerChi);
 btnPeng.addEventListener("click", onPlayerPeng);
@@ -436,9 +443,27 @@ document.getElementById("btn-tile-ref-close").addEventListener("click", () => {
 
   // 用真實 renderTile 填充所有 [data-tiles] 牌行（只填一次）
   let tilesRendered = false;
+  function renderTutorialYaku() {
+    const grid = document.getElementById("tut-yaku-grid");
+    if (!grid) return;
+    const groups = new Map();
+    YAKU_SECTIONS.forEach(sec => sec.items.forEach(it => {
+      const fan = YAKU_FAN[it.name];
+      if (!fan) return;                       // 0 台或三人專屬項目不列
+      if (!groups.has(fan)) groups.set(fan, []);
+      if (!groups.get(fan).some(x => x.name === it.name)) groups.get(fan).push(it);
+    }));
+    const badge = { 1: "badge-gold", 2: "badge-blue", 3: "badge-teal", 4: "badge-purple", 6: "badge-orange", 8: "badge-red" };
+    grid.innerHTML = [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([fan, items]) =>
+      `<div class="tut-yaku-row"><span class="tut-badge ${badge[fan] || "badge-gold"}">${fan} 台</span><div>` +
+      items.map(it => `<strong>${it.name}</strong>　${it.desc}`).join("<br>") +
+      `</div></div>`).join("");
+  }
+
   function renderTutorialTiles() {
     if (tilesRendered) return;
     tilesRendered = true;
+    renderTutorialYaku();
     overlay.querySelectorAll(".tut-tile-row[data-tiles]").forEach(row => {
       row.innerHTML = "";
       row.dataset.tiles.split(" ").forEach(code => {
@@ -501,7 +526,7 @@ const YAKU_SECTIONS = [
   {
     title: "🎯 特殊胡法",
     items: [
-      { name:"天胡",   cls:"yr-special", desc:"庄家起手第一摸即胡",         tiles:[] },
+      { name:"天胡",   cls:"yr-special", desc:"莊家起手第一摸即胡",         tiles:[] },
       { name:"地胡",   cls:"yr-special", desc:"閒家第一輪摸牌即胡",         tiles:[] },
       { name:"嶺上開花",cls:"yr-special",desc:"槓牌後補牌自摸胡",           tiles:[] },
       { name:"自摸",   cls:"",           desc:"摸牌自行完成胡牌",           tiles:[] },
@@ -922,7 +947,7 @@ function renderWinHistory() {
       <div class="whr-winner">
         <span class="whr-avatar">${r.avatar}</span>
         <span class="whr-name">${r.winner}</span>
-        <span class="whr-type ${r.isDealer ? 'whr-dealer' : ''}">${r.winType}${r.isDealer ? '・庄' : ''}</span>
+        <span class="whr-type ${r.isDealer ? 'whr-dealer' : ''}">${r.winType}${r.isDealer ? '・莊' : ''}</span>
       </div>
       <div class="whr-score">
         <span class="whr-fan">${r.fan} 番</span>
@@ -1180,7 +1205,7 @@ function classifyWinningHand(handTiles, openMelds, decomposedGroups, ctx = {}) {
   const hasFullDecomp = decomposedGroups !== null && decomposedGroups !== undefined;
 
   // ── 特殊胡法 ────────────────────────────────────────────────────
-  // 天胡（庄家第一摸即胡）
+  // 天胡（莊家第一摸即胡）
   if (isZimo && isFirstTurn && openMelds.length === 0)
     yaku.push({ name: "天胡", cls: "yaku-special" });
   // 地胡（閒家第一輪摸牌即胡）
@@ -1409,6 +1434,15 @@ function classifyWinningHand(handTiles, openMelds, decomposedGroups, ctx = {}) {
 
 // ─────────────────────────────────────────────────────────────────
 // 聽牌分析：找出所有「丟哪張 → 等哪些牌」的方案
+// 聽牌選項快取：同一手牌/牌河狀態只算一次（render() 每次都會問）
+let _tenpaiCache = { key: null, opts: [] };
+function getPlayerTenpaiOptions() {
+  const key = hands[PLAYER_SOUTH].join(",") + "|" +
+    [PLAYER_SOUTH, AI_EAST, AI_WEST, AI_NORTH].map(p => discards[p].length + ":" + melds[p].length).join(",");
+  if (_tenpaiCache.key !== key) _tenpaiCache = { key, opts: findTenpaiOptions(hands[PLAYER_SOUTH]) };
+  return _tenpaiCache.opts;
+}
+
 function findTenpaiOptions(hand) {
   const allTileTypes = [
     ...["M","P","S"].flatMap(s => Array.from({ length: 9 }, (_, i) => `${s}${i + 1}`)),
@@ -1585,7 +1619,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
   if (closeBtn) closeBtn.textContent = "開始新局";
 
   // 各座位頭像對照
-  const SEAT_AVATAR = { S: playerAvatar, E: "🐯", W: "🦁", N: "🤖" };
+  const SEAT_AVATAR = getSeatAvatarMap();
 
   nameEl.innerHTML = "";
   const avatarSpan = document.createElement("span");
@@ -1597,7 +1631,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
   if (winner === dealerPlayer) {
     const dealerBadge = document.createElement("span");
     dealerBadge.className = "win-dealer-badge";
-    dealerBadge.textContent = "庄";
+    dealerBadge.textContent = "莊";
     nameEl.appendChild(dealerBadge);
   }
   typeEl.textContent = isRonghu
@@ -1657,7 +1691,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
     yakuEl.appendChild(tag);
   };
 
-  // ── 風位動態計算（庄家 = 東風，按出牌順序遞增）─────
+  // ── 風位動態計算（莊家 = 東風，按出牌順序遞增）─────
   // 出牌順序：南 → 西 → 北 → 東
   const TURN_ORDER = [PLAYER_SOUTH, AI_WEST, AI_NORTH, AI_EAST];
   const dealerIdx  = TURN_ORDER.indexOf(dealerPlayer);
@@ -1705,7 +1739,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
 
 
   // ── 花牌詳細番數 ─────────────────────────────────────
-  const seatNum = seatPos(winner);  // 與風位相同，庄家=1
+  const seatNum = seatPos(winner);  // 與風位相同，莊家=1
   const winnerFlowerTiles = flowers[winner] || [];
   const winnerFlowerNums  = winnerFlowerTiles.map(f => parseInt(f.slice(1)));
 
@@ -1776,7 +1810,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
   winHistory.unshift({
     time:      _timeStr,
     winner:    _winnerName,
-    avatar:    (winner === PLAYER_SOUTH ? playerAvatar : { E:"🐯", W:"🦁", N:"🤖" }[winner]) ?? "🀄",
+    avatar:    (winner === PLAYER_SOUTH ? playerAvatar : getSeatAvatarMap()[winner]) ?? "🀄",
     fan:       totalFan,
     payout:    _payout,
     winType:   isRonghu ? "榮胡" : "自摸",
@@ -1834,7 +1868,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
       if (isDealer) {
         const dealerNote = document.createElement("span");
         dealerNote.className = "win-score-dealer";
-        dealerNote.textContent = "庄家勝 × 2";
+        dealerNote.textContent = "莊家勝 × 2";
         scoreEl.appendChild(dealerNote);
       }
     }
@@ -1882,7 +1916,7 @@ function showWinOverlay(winner, { winTile = null, isRonghu = false, afterKong = 
     if (pid === dealerPlayer) {
       const db = document.createElement("span");
       db.className = "win-dealer-badge";
-      db.textContent = "庄";
+      db.textContent = "莊";
       info.appendChild(db);
     }
 
@@ -2231,7 +2265,7 @@ function resetState() {
 }
 
 function dealInitialHands() {
-  // 標準規則：閒家 13 張，庄家 14 張（庄家起手已算摸了一張）
+  // 標準規則：閒家 13 張，莊家 14 張（莊家起手已算摸了一張）
   const players = [PLAYER_SOUTH, AI_EAST, AI_WEST, AI_NORTH];
   // 輪流發牌，每家先拿 13 張
   for (let i = 0; i < 13; i++) {
@@ -2240,7 +2274,7 @@ function dealInitialHands() {
       if (wall.length === 0) return;
     }
   }
-  // 庄家再多發 1 張（14 張起手，可直接出牌）
+  // 莊家再多發 1 張（14 張起手，可直接出牌）
   if (wall.length > 0) drawOneTileToHandOrFlower(dealerPlayer);
   // 起手排序
   for (let p of players) {
@@ -2271,27 +2305,18 @@ function drawOneTileToHandOrFlower(player) {
    - 座位標籤（分數、莊家徽章、方位）
    ══════════════════════════════════════════════════════════════ */
 function render() {
+  renderSeatPlates();
   elWallCount.textContent    = wall.length.toString();
   if (elWallCountBar) elWallCountBar.textContent = wall.length.toString();
-  elCurrentPlayer.textContent =
-    currentTurn === PLAYER_SOUTH ? playerName :
-    currentTurn === AI_EAST      ? "人機 2" :
-    currentTurn === AI_WEST      ? "人機 1" :
-                                   "人機 3";
+  elCurrentPlayer.textContent = getSeatName(currentTurn);
 
-  // 顯示本局庄家（資訊欄短標籤 + 座位旁徽章）
+  // 顯示本局莊家（資訊欄短標籤 + 座位旁徽章）
   const dealerEl = document.getElementById("dealer-name");
   if (dealerEl) {
-    const shortNames = {
-      [PLAYER_SOUTH]: playerName,
-      [AI_EAST]:      "人機 2",
-      [AI_WEST]:      "人機 1",
-      [AI_NORTH]:     "人機 3",
-    };
-    dealerEl.textContent = shortNames[dealerPlayer] || "-";
+    dealerEl.textContent = getSeatName(dealerPlayer);
   }
 
-  // 座位旁的庄家徽章：只顯示當前庄家那一個
+  // 座位旁的莊家徽章：只顯示當前莊家那一個
   const badgeMap = {
     [PLAYER_SOUTH]: "dealer-badge-south",
     [AI_EAST]:      "dealer-badge-east",
@@ -2320,7 +2345,7 @@ function render() {
     el.classList.toggle("tc-active", el.dataset.seat === activeSeat);
   });
 
-  // 棄牌區標籤：只顯示固定文字，庄家標示移至座位旁的 dealer-badge
+  // 棄牌區標籤：只顯示固定文字，莊家標示移至座位旁的 dealer-badge
   const discardLabelBase = {
     [PLAYER_SOUTH]: ["dlabel-south", "南棄（你）"],
     [AI_EAST]:      ["dlabel-east",  "東棄"],
@@ -2342,6 +2367,7 @@ function render() {
       div.classList.add("drawn-tile");
     }
     div.addEventListener("click", () => onPlayerDiscard(tile));
+    div.setAttribute("aria-label", formatTileLabel(tile));
 
     // 只有飛牌可以拖拽重排位置
     if (tile[0] === "H") {
@@ -2445,9 +2471,17 @@ function render() {
 
   const canSwap = !gameOver && currentTurn === PLAYER_SOUTH && drawnThisTurn && !!findFeiSwapOption();
 
-  // 聽牌按鈕：輪到玩家且已摸牌時可用（自摸胡時不顯示，已胡就不需要聽牌了）
-  const canTenpai = !gameOver && currentTurn === PLAYER_SOUTH && drawnThisTurn &&
-    !canZimo && !awaitingPlayerClaim;
+  // 聽牌按鈕：只有「打掉某張後真的能聽牌」才出現（原版每回合都顯示，按了常常是空的）
+  const tenpaiOpts = (!gameOver && currentTurn === PLAYER_SOUTH && drawnThisTurn &&
+    !canZimo && !awaitingPlayerClaim) ? getPlayerTenpaiOptions() : [];
+  const canTenpai = tenpaiOpts.length > 0;
+  btnTenpai.textContent = canTenpai ? `聽 ${tenpaiOpts.length}` : "聽";
+  btnTenpai.title = canTenpai ? `有 ${tenpaiOpts.length} 種打法可以聽牌 [T]` : "聽牌分析 [T]";
+  // 在手牌上標出「打這張就聽牌」的牌
+  const readyDiscards = new Set(tenpaiOpts.map(o => o.discard));
+  elPlayerHand.querySelectorAll(".tile").forEach((el, i) => {
+    el.classList.toggle("tenpai-discard", readyDiscards.has(hands[PLAYER_SOUTH][i]));
+  });
   // 推薦按鈕：玩家回合且可棄牌時可用
   const canRecommend = !gameOver && currentTurn === PLAYER_SOUTH && drawnThisTurn && !awaitingPlayerClaim;
 
@@ -3241,7 +3275,7 @@ function renderMeldsRow(container, meldList) {
   });
 }
 
-// ── 骰子決庄家 ────────────────────────────────────────────────
+// ── 骰子決莊家 ────────────────────────────────────────────────
 // 座位標籤：方位 + 人/機 標示
 /* ══════════════════════════════════════════════════════════════
    骰子決莊家系統
@@ -3267,6 +3301,10 @@ function showDiceOverlay() {
   rollBtn.textContent = "擲骰子";
   rollBtn.disabled = false;
   rollBtn.onclick = startRolling;
+  const dn = document.getElementById("dealer-name");
+  const cp = document.getElementById("current-player");
+  if (dn) dn.textContent = "—";
+  if (cp) cp.textContent = "—";
   overlay.classList.remove("hidden");
 }
 
@@ -3305,10 +3343,10 @@ function startRolling() {
       const eastLabel = SEAT_NAMES_FULL[east];
 
       const isHuman = east === PLAYER_SOUTH;
-      const icon = isHuman ? "🧑" : "🤖";
+      const icon = getSeatAvatarMap()[east] || "🀄";
       resultEl.innerHTML =
         `擲出 <strong>${v1} ＋ ${v2} ＝ ${sum}</strong><br>` +
-        `<span class="dice-east-badge">${icon} ${eastLabel}<br>成為本局庄家，優先出牌！</span>`;
+        `<span class="dice-east-badge">${icon} ${eastLabel}<br>成為本局莊家，優先出牌！</span>`;
 
       rollBtn.textContent = "開始遊戲";
       rollBtn.disabled = false;
@@ -3325,16 +3363,18 @@ function startRolling() {
 
 function actuallyStartGame(east) {
   elLog.innerHTML = "";
-  log("開始新的一局（庄家 14 張，閒家 13 張）", "system");
+  log("開始新的一局（莊家 14 張，閒家 13 張）", "system");
   resetState();
   dealerPlayer = east; // resetState 後再設定，避免被覆蓋
-  currentTurn  = east; // 庄家先手
+  const subEl = document.getElementById("top-bar-sub");
+  if (subEl) subEl.textContent = `每台 ${BASE_UNIT.toLocaleString()}`;
+  currentTurn  = east; // 莊家先手
   dealInitialHands();
-  // 庄家起手已有 14 張（視同已摸牌），直接可以打牌
+  // 莊家起手已有 14 張（視同已摸牌），直接可以打牌
   drawnThisTurn = true;
   turnCount = 1;
   render();
-  log(`${SEAT_NAMES_FULL[east]} 成為本局庄家，手持 14 張，先手出牌。`, "system");
+  log(`${SEAT_NAMES_FULL[east]} 成為本局莊家，手持 14 張，先手出牌。`, "system");
 
   if (east === PLAYER_SOUTH) {
     // 玩家已有 14 張，直接等待操作（可宣胡或打牌）
@@ -3354,7 +3394,7 @@ function actuallyStartGame(east) {
    onPlayerPass()      — 過牌
    onSwapFei()         — 換飛（用飛替換手牌中一張）
    ══════════════════════════════════════════════════════════════ */
-function onPlayerDraw() {
+function onPlayerDraw(isKongDraw = false) {
   if (gameOver || currentTurn !== PLAYER_SOUTH || drawnThisTurn) return;
   if (wall.length === 0) {
     endGameDraw();
@@ -3366,9 +3406,9 @@ function onPlayerDraw() {
     return;
   }
   drawnThisTurn = true;
-  afterKongDraw = false; // 普通摸牌，非嶺上
+  afterKongDraw = isKongDraw; // 槓後補牌才算嶺上
   turnCount++;
-  log(`你摸了一張牌。`, "player");
+  log(isKongDraw ? `你槓後補了一張牌。` : `你摸了一張牌。`, "player");
   render();
 }
 
@@ -3632,13 +3672,38 @@ function anyAiCanPeng(tile, from, startFrom) {
 function endTurnAndNext() {
   drawnThisTurn = false;
   render();
-  if (wall.length === 0) { endGameDraw(); return; }
   if (gameOver) return;
+  // 牌山已空：最後一張棄牌仍可榮胡（河底），無人胡才流局
+  const wallWasEmpty = wall.length === 0;
+  if (wallWasEmpty && !lastDiscard) { endGameDraw(); return; }
 
   if (lastDiscard) {
     const tile = lastDiscard.tile;
     const from = lastDiscard.from;
     const naturalNext = getNextPlayer(from);
+
+    // ── Phase 0：玩家打出的牌，AI 也可以榮胡（原版漏判：玩家永遠不會放槍）──
+    if (from === PLAYER_SOUTH) {
+      let aiRong = null;
+      let chk0 = naturalNext;
+      for (let i = 0; i < 3; i++) {
+        if (chk0 !== PLAYER_SOUTH && MJ.isWinningHand([...hands[chk0], tile])) { aiRong = chk0; break; }
+        chk0 = getNextPlayer(chk0);
+      }
+      if (aiRong !== null) {
+        const ai = aiRong;
+        setTimeout(() => {
+          if (gameOver) return;
+          showActionOverlay("胡");
+          log(`${getSeatName(ai)}榮胡！你打出的 ${formatTileLabel(tile)} 放槍了。`, "ai");
+          gameOver = true;
+          render();
+          showWinOverlay(ai, { winTile: tile, isRonghu: true });
+        }, 350);
+        return;
+      }
+      if (wallWasEmpty) { endGameDraw(); return; }
+    }
 
     if (from !== PLAYER_SOUTH) {
       // ── Phase 1：胡 優先，全場掃描（玩家 → AI 依序） ──────────────
@@ -3681,6 +3746,7 @@ function endTurnAndNext() {
         }, 350);
         return;
       }
+      if (wallWasEmpty) { endGameDraw(); return; }
 
       // ── Phase 2–4：嚴格全場優先 槓 > 碰 > 吃 ──────────────────────
       // 先算出玩家所有可選動作
@@ -3776,7 +3842,7 @@ function aiTakeTurn() {
     afterKongDraw = false;
     turnCount++;
   }
-  // 若 drawnThisTurn 已為 true（庄家起手 14 張），直接跳至判斷邏輯
+  // 若 drawnThisTurn 已為 true（莊家起手 14 張），直接跳至判斷邏輯
 
   // AI 嘗試自摸胡
   if (MJ.isWinningHand(hands[currentTurn])) {
@@ -3892,7 +3958,7 @@ function onPlayerPass() {
     // 玩家過後，AI 仍可搶牌（胡/槓/碰）
     if (tryAiClaims(tile, from, getNextPlayer(from))) return;
     // 下家 AI 吃
-    if (nextPlayer !== PLAYER_SOUTH && canAiChi(nextPlayer, tile)) {
+    if (nextPlayer !== PLAYER_SOUTH && canAiChi(nextPlayer, tile) && aiShouldChi(nextPlayer, tile, from)) {
       setTimeout(() => aiClaimChi(nextPlayer, tile, from), 800);
       return;
     }
@@ -3993,8 +4059,7 @@ function onPlayerGang() {
     lastDiscard = null;
     // 槓後補牌（嶺上開花）
     drawnThisTurn = false;
-    afterKongDraw = true;
-    onPlayerDraw();
+    onPlayerDraw(true);
     return;
   }
 
@@ -4013,8 +4078,7 @@ function onPlayerGang() {
       showActionOverlay("槓");
       log(`你加槓了 ${formatTileLabel(addTile)}（自己的碰牌升級），補一張牌。`, "claim");
       drawnThisTurn = false;
-      afterKongDraw = true;
-      onPlayerDraw();
+      onPlayerDraw(true);
       return;
     }
   }
@@ -4039,7 +4103,7 @@ function onPlayerGang() {
     showActionOverlay("槓");
     log(`你暗槓了 ${formatTileLabel(tile)}（四張在手），補一張牌。`, "claim");
     drawnThisTurn = false;
-    onPlayerDraw();
+    onPlayerDraw(true);
   }
 }
 
@@ -4260,7 +4324,7 @@ function showDrawOverlay() {
   if (allHands) {
     allHands.innerHTML = "";
     const DIR_LABEL   = { S: "南", E: "東", W: "西", N: "北" };
-    const SEAT_AVATAR = { S: playerAvatar, E: "🐯", W: "🦁", N: "🤖" };
+    const SEAT_AVATAR = getSeatAvatarMap();
     [PLAYER_SOUTH, AI_EAST, AI_WEST, AI_NORTH].forEach(pid => {
       const row = document.createElement("div");
       row.className = "wah-row";
@@ -4282,7 +4346,7 @@ function showDrawOverlay() {
       if (pid === dealerPlayer) {
         const db = document.createElement("span");
         db.className = "win-dealer-badge";
-        db.textContent = "庄";
+        db.textContent = "莊";
         info.appendChild(db);
       }
       row.appendChild(info);
@@ -4337,13 +4401,27 @@ function showDrawOverlay() {
    formatTileLabel()   — 牌碼 → 人類可讀字串
    log()               — 新增訊息面板記錄
    ══════════════════════════════════════════════════════════════ */
+function getSeatAvatarMap() {
+  return { S: playerAvatar, E: SEAT_INFO[AI_EAST].avatar, W: SEAT_INFO[AI_WEST].avatar, N: SEAT_INFO[AI_NORTH].avatar };
+}
+
+// 座位名牌：名字 / 頭像 / 與你的關係，全部由 SEAT_INFO 產生
+function renderSeatPlates() {
+  for (const [id, info] of Object.entries(SEAT_INFO)) {
+    const seatKey = { [AI_EAST]: "east", [AI_WEST]: "west", [AI_NORTH]: "north" }[id];
+    const nameEl = document.getElementById(`seat-name-${seatKey}`);
+    const avEl   = document.getElementById(`seat-avatar-${seatKey}`);
+    const roleEl = document.getElementById(`seat-role-${seatKey}`);
+    if (nameEl) nameEl.textContent = info.name;
+    if (avEl)   avEl.textContent   = info.avatar;
+    if (roleEl) roleEl.textContent = info.role;
+  }
+}
+
 function getSeatName(id) {
   switch (id) {
     case PLAYER_SOUTH: return playerName;
-    case AI_EAST:      return "人機 2";
-    case AI_WEST:      return "人機 1";
-    case AI_NORTH:     return "人機 3";
-    default:           return "人機";
+    default:           return SEAT_INFO[id] ? SEAT_INFO[id].name : "人機";
   }
 }
 
@@ -4645,3 +4723,18 @@ document.addEventListener("keydown", (e) => {
   // 關閉推薦 overlay
   if (hide("recommend-overlay", true)) { clearRecommend(); return; }
 });
+
+// ── 首頁主視覺：用真實牌面排出一手扇形胡牌 ─────────────────────────
+(function renderHeroTiles() {
+  const el = document.getElementById("mj4-hero-tiles");
+  if (!el) return;
+  const hand = ["M1","M2","M3","P5","P5","P5","S7","S8","S9","Z5","Z5","Z5","H1","Z6"];
+  const mid = (hand.length - 1) / 2;
+  hand.forEach((code, i) => {
+    const t = renderTile(code, false);
+    t.classList.add("hero-tile");
+    t.style.setProperty("--i", (i - mid).toFixed(2));
+    el.appendChild(t);
+  });
+  renderSeatPlates();
+})();
