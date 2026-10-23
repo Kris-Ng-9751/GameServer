@@ -1,23 +1,27 @@
 <!DOCTYPE html>
 <!--
   ══════════════════════════════════════════════════════════════
-  mahjong4.html — 四人麻將（單機版）
-  玩家 vs 3 位 AI，馬來西亞麻將規則（13 張手牌、花牌、飛）
-  引用：styles.css / mahjong-core.js / mahjong4.js
+  index.html — 四人麻將（桌面版）
+  玩家 vs 3 位 AI，台灣 16 張麻將規則
+  引用：styles.css / mahjong-fx.css / mahjong-core.js / mahjong4.js / mahjong-fx.js
   ══════════════════════════════════════════════════════════════
 -->
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <!-- viewport-fit=cover：讓內容延伸至 iPhone 瀏海/圓角區域 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <!-- iOS PWA 支援：加至主螢幕後以全屏模式啟動 -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>四人麻將（單機版）</title>
-  <meta name="theme-color" content="#2a1712" />
+  <title>🀄 四人麻將 · 單機版</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="mahjong-fx.css" />
+  <link rel="stylesheet" href="mahjong-sym4.css" />
   <style>
     /* ── 歡迎面板（doudizhu 風格）── */
     .mj4-welcome-panel {
@@ -127,21 +131,14 @@
     }
     .mj4-sound-btn:hover { background: rgba(255,255,255,.14); }
 
-    /* ── 本次新增元素 ── */
-    .mj4-hero-tiles { display:flex; justify-content:center; gap:2px; margin-bottom:14px; }
-    .mj4-hero-tiles .hero-tile { transform: rotate(calc(var(--i) * 2deg)) translateY(calc(var(--i) * var(--i) * 0.6px)); }
-    .mj4-welcome-rules b { color:#f6c847; font-weight:700; }
-    .seat-name-wrap { display:inline-flex; align-items:baseline; gap:4px; }
-    .seat-role { font-size:0.68em; opacity:0.65; }
-    .tile.tenpai-discard { box-shadow: 0 0 0 2px #f6c847, var(--shadow-tile); }
-    .mj4-credit { position:fixed; bottom:12px; right:16px; z-index:9999; font-size:0.68rem; color:rgba(255,255,255,0.22); letter-spacing:0.05em; pointer-events:none; user-select:none; }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
   <!-- ══ 背景音樂（bgm.mp3，loop 循環播放）══ -->
   <!-- 統一頂部導覽列 -->
   <!-- BGM -->
-  <audio id="bgm" loop preload="auto">
+  <audio id="bgm" loop preload="metadata">
     <source src="bgm.mp3" type="audio/mpeg">
   </audio>
 
@@ -149,13 +146,13 @@
   <div id="top-bar" class="top-bar">
     <!-- 左：遊戲資訊 -->
     <div class="top-bar-left info-row">
-      <div class="dealer-info">莊家：<span id="dealer-name">—</span></div>
-      <div class="round-info">輪到：<span id="current-player">—</span></div>
+      <div class="dealer-info">庄家：<span id="dealer-name">-</span></div>
+      <div class="round-info">輪到：<span id="current-player">-</span></div>
     </div>
     <!-- 中：標題 -->
     <div class="top-bar-center">
-      <span class="top-bar-title">四人麻將</span>
-      <span class="top-bar-sub" id="top-bar-sub">每台 100</span>
+      <span class="top-bar-title">四人麻將（单机版）</span>
+      <span class="top-bar-sub">玩家 vs 3 個簡單 AI(純前端 Demo)</span>
     </div>
     <!-- 右：BGM + 菜單 -->
     <div class="top-bar-right">
@@ -182,8 +179,8 @@
     <!-- 牌桌：CSS Grid 三欄三列，北/西/東/南四家座位 + 中央棄牌區 -->
     <main class="table">
       <!-- 北家（AI，手牌 180° 旋轉）-->
-      <section class="seat seat-north" data-seat="N">
-        <div class="seat-label"><span id="seat-avatar-north" class="game-avatar">🤖</span><span class="seat-name-wrap"><span id="seat-name-north" class="seat-name">人機 2</span><span id="seat-role-north" class="seat-role">對家</span></span><span id="dealer-badge-north" class="dealer-badge hidden">莊</span><span id="score-north" class="seat-score">10,000</span></div>
+      <section class="seat seat-north">
+        <div class="seat-label"><span class="game-avatar">🤖</span>人機1<span id="dealer-badge-north" class="dealer-badge hidden">庄家</span><span id="score-north" class="seat-score">10,000</span></div>
         <div id="feis-north" style="display:none"></div>
         <!-- 手牌 + 副露（右） -->
         <div class="ai-hand-flower-row">
@@ -207,26 +204,25 @@
             </div>
           </div>
           <div class="dc-compass-mid">
-            <!-- 左側 = 東家（上家），右側 = 西家（下家）：出牌順序 南→西→北→東 在畫面上為逆時針，與實體牌桌一致 -->
             <div class="dc-cell dc-west">
-              <div id="discard-east" class="discard-row discard-row-v"></div>
+              <div id="discard-west" class="discard-row discard-row-v"></div>
             </div>
             <div class="dc-center-void">
               <div id="turn-compass" class="turn-compass">
                 <div class="tc-arrow tc-north"  data-seat="N"><span class="tc-dir">北</span>▲</div>
                 <div class="tc-middle-row">
-                  <div class="tc-arrow tc-west"  data-seat="E"><span class="tc-dir">東</span>◀</div>
+                  <div class="tc-arrow tc-west"  data-seat="W"><span class="tc-dir">西</span>◀</div>
                   <div class="tc-wall">
                     <span class="tc-wall-label">牌山</span>
                     <span id="wall-count" class="tc-wall-count">0</span>
                   </div>
-                  <div class="tc-arrow tc-east"  data-seat="W">▶<span class="tc-dir">西</span></div>
+                  <div class="tc-arrow tc-east"  data-seat="E">▶<span class="tc-dir">東</span></div>
                 </div>
                 <div class="tc-arrow tc-south"  data-seat="S">▼<span class="tc-dir">南</span></div>
               </div>
             </div>
             <div class="dc-cell dc-east">
-              <div id="discard-west" class="discard-row discard-row-v"></div>
+              <div id="discard-east" class="discard-row discard-row-v"></div>
             </div>
           </div>
           <div class="dc-compass-row">
@@ -238,8 +234,8 @@
       </section>
 
       <!-- ── 南家（玩家）：顯示手牌、副露、行動按鈕 ── -->
-      <section class="seat seat-south" data-seat="S">
-        <div class="seat-label"><span id="game-player-avatar" class="game-avatar">🀄</span><span class="seat-name-wrap"><span id="south-seat-name" class="seat-name">玩家</span><span class="seat-role">你</span></span><span id="dealer-badge-south" class="dealer-badge hidden">莊</span><span id="score-south" class="seat-score">10,000</span></div>
+      <section class="seat seat-south">
+        <div class="seat-label"><span id="game-player-avatar" class="game-avatar">🀄</span><span id="south-seat-name">玩家</span><span id="dealer-badge-south" class="dealer-badge hidden">庄家</span><span id="score-south" class="seat-score">10,000</span></div>
         <div id="feis-south" style="display:none"></div>
         <div class="hand-center">
           <div class="flowers-row flowers-row-above">
@@ -255,7 +251,7 @@
               <button id="btn-peng"     class="btn-action btn-peng-action">碰</button>
               <button id="btn-gang"     class="btn-action btn-gang-action">槓</button>
               <button id="btn-swap-fei" class="btn-action btn-swap-action">換飛</button>
-              <button id="btn-tenpai"    class="btn-action btn-tenpai-action" title="查看聽哪些牌 [T]">聽</button>
+              <button id="btn-tenpai"    class="btn-action btn-tenpai-action">聽牌</button>
               <button id="btn-win"       class="btn-action btn-win-action">胡</button>
               <button id="btn-pass"      class="btn-action btn-pass-action">過</button>
               <button id="btn-recommend" class="btn-action btn-recommend-action" title="推薦打法 [R]">💡</button>
@@ -264,32 +260,36 @@
         </div>
       </section>
 
-      <!-- ── 左側：東家（上家，你只能吃這家的牌）。沿用 .seat-west 的左側版型 ── -->
-      <section class="seat seat-west seat-left" data-seat="E">
-        <div class="seat-label"><span id="seat-avatar-east" class="game-avatar">🐯</span><span class="seat-name-wrap"><span id="seat-name-east" class="seat-name">人機 3</span><span id="seat-role-east" class="seat-role">上家</span></span><span id="dealer-badge-east" class="dealer-badge hidden">莊</span><span id="score-east" class="seat-score">10,000</span></div>
-        <div id="feis-east" style="display:none"></div>
+      <!-- ── 西家（AI，手牌 90° 旋轉）── -->
+      <section class="seat seat-west">
+        <div class="seat-label"><span class="game-avatar">🦁</span>人機2<span id="dealer-badge-west" class="dealer-badge hidden">庄家</span><span id="score-west" class="seat-score">10,000</span></div>
+        <div id="feis-west" style="display:none"></div>
+        <!-- 副露（上）+ 手牌（下）直欄 + 花牌（右） -->
         <div class="ai-hand-flower-row">
           <div class="ai-hand-melds-col">
-            <div id="melds-east" class="melds-row"></div>
-            <div id="ai-east-hand" class="hand hand-ai"></div>
+            <div id="melds-west" class="melds-row"></div>
+            <div id="ai-west-hand" class="hand hand-ai"></div>
           </div>
           <div class="flowers-row flowers-row-side">
-            <div id="flowers-east" class="flowers flowers-col"></div>
+            
+            <div id="flowers-west" class="flowers flowers-col"></div>
           </div>
         </div>
       </section>
 
-      <!-- ── 右側：西家（下家，你打出的牌最先輪到他）。沿用 .seat-east 的右側版型 ── -->
-      <section class="seat seat-east seat-right" data-seat="W">
-        <div class="seat-label"><span id="seat-avatar-west" class="game-avatar">🦁</span><span class="seat-name-wrap"><span id="seat-name-west" class="seat-name">人機 1</span><span id="seat-role-west" class="seat-role">下家</span></span><span id="dealer-badge-west" class="dealer-badge hidden">莊</span><span id="score-west" class="seat-score">10,000</span></div>
-        <div id="feis-west" style="display:none"></div>
+      <!-- ── 東家（AI，手牌 -90° 旋轉）── -->
+      <section class="seat seat-east">
+        <div class="seat-label"><span class="game-avatar">🐯</span>人機3<span id="dealer-badge-east" class="dealer-badge hidden">庄家</span><span id="score-east" class="seat-score">10,000</span></div>
+        <div id="feis-east" style="display:none"></div>
+        <!-- 花牌（左）+ 手牌（上）+ 副露（下） -->
         <div class="ai-hand-flower-row">
           <div class="flowers-row flowers-row-side">
-            <div id="flowers-west" class="flowers flowers-col"></div>
+            
+            <div id="flowers-east" class="flowers flowers-col"></div>
           </div>
           <div class="ai-hand-melds-col">
-            <div id="ai-west-hand" class="hand hand-ai"></div>
-            <div id="melds-west" class="melds-row"></div>
+            <div id="ai-east-hand" class="hand hand-ai"></div>
+            <div id="melds-east" class="melds-row"></div>
           </div>
         </div>
       </section>
@@ -304,16 +304,16 @@
     <span id="action-text" class="action-text"></span>
   </div>
 
-  <!-- 擲骰子決定莊家（每局開始前顯示，含賠率選擇）-->
+  <!-- 擲骰子決定庄家（每局開始前顯示，含賠率選擇）-->
   <div id="dice-overlay" class="dice-overlay hidden">
     <div class="dice-panel">
       <button id="btn-dice-exit" class="btn-dice-exit">✕ 退出</button>
-      <div class="dice-title">擲骰定莊家</div>
-      <div class="dice-subtitle">莊家起手 14 張，先出牌；莊家胡牌賠付加倍</div>
+      <div class="dice-title">擲骰定庄家</div>
+      <div class="dice-subtitle">骰子決定誰是本局庄家（先手出牌）</div>
 
       <!-- 賠率選擇 -->
       <div class="rate-selector">
-        <div class="rate-label">每台籌碼</div>
+        <div class="rate-label">選擇賠率（每番）</div>
         <div class="rate-options" id="rate-options">
           <button class="rate-btn active" data-rate="100">100</button>
           <button class="rate-btn" data-rate="300">300</button>
@@ -379,9 +379,9 @@
         <span class="profile-name-edit-btn" id="btn-edit-name" title="編輯名字">✎</span>
       </div>
       <div class="profile-balance-info">
-        <span class="profile-balance-label">餘額</span>
+        <span class="profile-balance-label">余额</span>
         <span class="profile-balance-val" id="profile-balance">10,000</span>
-        <button id="btn-reset-balance" class="btn-reset-balance" title="重置餘額為 10,000">↺</button>
+        <button id="btn-reset-balance" class="btn-reset-balance" title="重置余額為 10,000">↺</button>
       </div>
     </div>
 
@@ -407,17 +407,17 @@
 
     <!-- 歡迎面板（居中） -->
     <div class="mj4-welcome-panel">
-      <div class="mj4-hero-tiles" id="mj4-hero-tiles" aria-hidden="true"></div>
-      <h1 class="mj4-welcome-title">四人麻將</h1>
-      <div class="mj4-welcome-subtitle">你坐南位，對手是三位人機</div>
+      <div class="mj4-welcome-title">🀄 四人麻將</div>
+      <div class="mj4-welcome-subtitle">單機版 — 玩家 vs 3 個 AI</div>
 
       <div class="mj4-welcome-rules">
+        <h3>📜 簡要規則</h3>
         <ul>
-          <li><b>13 張</b>手牌，湊成 4 組面子加 1 對眼即可胡牌</li>
-          <li>16 張花牌摸到即亮出補牌，每張加 1 台</li>
-          <li>4 張<b>飛</b>是萬用牌，可代替任何一張牌，但不能打出</li>
-          <li>只能吃<b>上家</b>（左手邊）的牌，碰、槓、胡不限</li>
-          <li>放槍者獨付 3 倍，莊家胡牌賠付加倍</li>
+          <li>馬來西亞16張麻將，含花牌</li>
+          <li>吃、碰、槓、胡 完整操作支援</li>
+          <li>每局擲骰子決定庄家</li>
+          <li>籌碼制度，胡牌按台數結算</li>
+          <li>支援難度選擇，挑戰更強 AI</li>
         </ul>
       </div>
 
@@ -498,15 +498,9 @@
             <div class="tut-tile-row" data-tiles="Z1 Z2 Z3 Z4 Z5 Z6 Z7"></div>
           </div>
           <div class="tut-section">
-            <div class="tut-section-title">花牌（16 張）</div>
-            <p class="tut-desc">春夏秋冬、梅蘭竹菊、琴棋書畫、貓雞蟲鼠各一張。摸到即亮出並從牌山補牌，每張計 1 台。</p>
+            <div class="tut-section-title">花牌（春夏秋冬 / 梅蘭菊竹）</div>
+            <p class="tut-desc">花牌摸到即亮出並補牌，每張計 1 台。共 8 張。</p>
             <div class="tut-tile-row" data-tiles="F1 F2 F3 F4 F5 F6 F7 F8"></div>
-            <div class="tut-tile-row" data-tiles="F9 F10 F11 F12 F13 F14 F15 F16"></div>
-          </div>
-          <div class="tut-section">
-            <div class="tut-section-title">飛（萬用牌，4 張）</div>
-            <p class="tut-desc">飛可以代替任何一張牌組成面子或眼，也能用來碰和吃，但不能用來槓，也不能打出。之後摸到飛所代替的那張真牌時，可按「換飛」把飛收回手中。</p>
-            <div class="tut-tile-row" data-tiles="H1 H2 H3 H4"></div>
           </div>
         </div>
 
@@ -515,8 +509,8 @@
           <div class="tut-section">
             <div class="tut-section-title">🎲 開局準備</div>
             <ol class="tut-list">
-              <li>擲兩顆骰子，點數和決定誰是<strong>莊家</strong>（先手出牌）。</li>
-              <li>莊家摸 <strong>14 張</strong>牌，其餘閒家各摸 <strong>13 張</strong>牌。</li>
+              <li>擲兩顆骰子，點數最大的玩家為<strong>庄家</strong>（先手優勢）。</li>
+              <li>庄家摸 <strong>14 張</strong>牌，其餘閒家各摸 <strong>13 張</strong>牌。</li>
               <li>花牌立即亮出並補牌，直到手中無花為止。</li>
             </ol>
           </div>
@@ -531,7 +525,7 @@
           </div>
           <div class="tut-section">
             <div class="tut-section-title">🃏 胡牌基本結構</div>
-            <p class="tut-desc">一副完整的胡牌手牌由以下組成（共 14 張，槓牌另計）：</p>
+            <p class="tut-desc">一副完整的胡牌手牌由以下組成（共 16 張）：</p>
             <div class="tut-hand-diagram">
               <div class="tut-hand-group">
                 <div class="tut-hand-label">第 1 組</div>
@@ -577,10 +571,9 @@
             <div class="tut-section-title">📊 計分方式</div>
             <ol class="tut-list">
               <li>胡牌後計算手牌的<strong>台數（番數）</strong>，每台乘以賠率。</li>
-              <li><strong>自摸</strong>：其餘三家各付「台數 × 每台籌碼」。</li>
-              <li><strong>放槍</strong>：打出胡牌那張的玩家獨付 <strong>3 倍</strong>。</li>
-              <li>莊家胡牌（不論自摸或榮胡），賠付全部 <strong>加倍</strong>。</li>
-              <li>每局重新擲骰決定莊家。</li>
+              <li><strong>自摸</strong>：三家各付自摸者；<strong>放槍</strong>：放槍者獨自付款。</li>
+              <li>庄家胡牌，三家各付 <strong>2倍</strong>；庄家自摸，三家各付 <strong>2倍</strong>。</li>
+              <li>連庄：庄家連續胡牌，可繼續當庄。</li>
             </ol>
           </div>
         </div>
@@ -594,14 +587,14 @@
           </div>
           <div class="tut-section">
             <div class="tut-section-title tut-badge-row"><span class="tut-badge badge-teal">吃</span> 吃牌</div>
-            <p class="tut-desc">當你的<strong>上家</strong>（左手邊的東家）打出一張牌，且你手中有兩張可與之組成順子的牌，即可宣「吃」，亮出順子後打出一張手牌。<br><strong>四人麻將限上家；三人麻將無吃牌。</strong></p>
+            <p class="tut-desc">當你的<strong>上家</strong>（左邊）打出一張牌，且你手中有兩張可與之組成順子的牌，即可宣「吃」，亮出順子後打出一張手牌。<br><strong>四人麻將限上家；三人麻將無吃牌。</strong></p>
             <div class="tut-example">例：手中有 <strong>五萬 六萬</strong>，上家打出<strong>四萬</strong> → 宣吃 → 亮出 <strong>四萬五萬六萬</strong></div>
           </div>
           <div class="tut-section">
             <div class="tut-section-title tut-badge-row"><span class="tut-badge badge-purple">槓</span> 槓牌</div>
             <p class="tut-desc">當你手中有 4 張完全相同的牌，可宣「槓」，分為：</p>
             <ul class="tut-list">
-              <li><strong>明槓</strong>：任一玩家打出你手中已有三張的牌，直接宣槓。</li>
+              <li><strong>明槓</strong>：任一玩家打出你手中已有三張的牌，宣碰並加槓。</li>
               <li><strong>暗槓</strong>：自摸時手中湊成 4 張，可自行宣槓（不影響聽牌）。</li>
               <li><strong>加槓</strong>：已碰出的刻子，再摸到相同牌可加槓。</li>
             </ul>
@@ -612,12 +605,12 @@
             <p class="tut-desc">手牌湊齊胡牌條件時宣胡，分為：</p>
             <ul class="tut-list">
               <li><strong>自摸</strong>：從牌山自己摸到胡牌張，加算自摸台。</li>
-              <li><strong>榮胡</strong>：別人打出的牌令你完成胡牌，打出那張的人「放槍」。小心：人機也會胡你打出的牌。</li>
+              <li><strong>點炮（放槍）</strong>：某玩家打出的牌令你完成胡牌。</li>
             </ul>
           </div>
           <div class="tut-section">
             <div class="tut-section-title">💡 聽牌與推薦</div>
-            <p class="tut-desc">手牌差 <strong>1 張</strong>即可完成胡牌時，稱為「聽牌」。輪到你時，打出後能聽牌的牌會標上金點；【聽】按鈕會列出要等哪些牌；【💡】讓 AI 分析建議打法。</p>
+            <p class="tut-desc">手牌差 <strong>1 張</strong>即可完成胡牌時，稱為「聽牌」。點擊【聽牌】按鈕可查看等待哪些牌；點擊【💡 推薦】可讓 AI 分析最佳打法。</p>
           </div>
         </div>
 
@@ -629,14 +622,48 @@
           </div>
           <div class="tut-section">
             <div class="tut-section-title">⭐ 常見役種（台數）</div>
-            <p class="tut-desc">以下台數直接取自結算規則，與實際計分一致。</p>
-            <div class="tut-yaku-grid" id="tut-yaku-grid"></div>
+            <div class="tut-yaku-grid">
+              <div class="tut-yaku-row">
+                <span class="tut-badge badge-gold">1台</span>
+                <div>
+                  <strong>平胡</strong> — 全由順子組成，對眼非三元/風牌<br>
+                  <strong>自摸</strong> — 自己從牌山摸到最後一張胡牌<br>
+                  <strong>門前清</strong> — 全程未碰/吃/槓，純靠摸牌組成手牌<br>
+                  <strong>花牌</strong> — 每張花牌各算 1 台<br>
+                  <strong>斷么九</strong> — 手牌全由 2–8 的數字牌組成
+                </div>
+              </div>
+              <div class="tut-yaku-row">
+                <span class="tut-badge badge-blue">2台</span>
+                <div>
+                  <strong>對對胡</strong> — 4 組全為刻子<br>
+                  <strong>混一色</strong> — 手牌只有一種數字花色加字牌<br>
+                  <strong>小三元</strong> — 三元牌（中發白）湊成兩刻一對
+                </div>
+              </div>
+              <div class="tut-yaku-row">
+                <span class="tut-badge badge-purple">3台</span>
+                <div>
+                  <strong>清一色</strong> — 手牌全為同一種數字花色（無字牌）<br>
+                  <strong>混老頭</strong> — 全由 1、9 和字牌組成的刻子+對子
+                </div>
+              </div>
+              <div class="tut-yaku-row">
+                <span class="tut-badge badge-red">高台</span>
+                <div>
+                  <strong>天胡</strong> — 庄家起手 14 張即胡（極罕見）<br>
+                  <strong>地胡</strong> — 閒家第一巡自摸胡牌<br>
+                  <strong>大三元</strong> — 三元牌三種全組成刻子<br>
+                  <strong>四暗刻</strong> — 4 組全為暗刻（未碰/槓）
+                </div>
+              </div>
+            </div>
           </div>
           <div class="tut-section">
             <div class="tut-section-title">❌ 不能胡牌的情況</div>
             <ul class="tut-list">
-              <li>手牌湊不成 4 組面子 + 1 對眼（七對、十三幺等特殊牌型除外）。</li>
-              <li>流局：牌山摸完、最後一張棄牌也無人胡，本局不計分。</li>
+              <li>吃/碰/槓之後，手牌條件不足（例如吃牌後只剩順子無法組成完整牌型）。</li>
+              <li>流局（牌山摸完無人胡牌）：本局平局，重新開局。</li>
             </ul>
           </div>
         </div>
@@ -660,7 +687,7 @@
           <div class="kbd-row"><kbd>H</kbd><span>胡牌</span></div>
           <div class="kbd-row"><kbd>G</kbd><span>槓牌</span></div>
           <div class="kbd-row"><kbd>T</kbd><span>聽牌分析</span></div>
-          <div class="kbd-row"><kbd>Space</kbd><span>過（放棄搶牌）</span></div>
+          <div class="kbd-row"><kbd>Space</kbd><span>過（放棄抢牌）</span></div>
           <div class="kbd-row"><kbd>R</kbd><span>推薦打法</span></div>
         </div>
         <div class="kbd-section-title">選牌 &amp; 打牌</div>
@@ -776,10 +803,13 @@
   <!-- 使用一般 script 標籤（非 module），方便直接用瀏覽器開啟檔案 -->
   <script src="mahjong-core.js"></script>
   <script src="mahjong4.js"></script>
+  <script src="mahjong-fx.js"></script>
 
 
   <!-- 創作者署名 -->
-  <div class="mj4-credit">Created by Kris Ng Wei Jian</div>
+  <div style="position:fixed;bottom:12px;right:16px;z-index:9999;font-size:0.68rem;color:rgba(255,255,255,0.22);letter-spacing:0.05em;pointer-events:none;user-select:none;">
+    Created by Kris Ng Wei Jian
+  </div>
 
 </body>
 </html>

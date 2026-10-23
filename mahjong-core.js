@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════════
 // mahjong-core.js
-// 麻將核心工具庫（由 game.js / game3p.js 共用）
+// 麻將核心工具庫（由 mahjong4.js 使用）
 //
 // 功能：
 //   1. createFullWall()  — 建立一副完整牌山（136 張 + 花牌 16 + 飛 4）
@@ -85,133 +85,121 @@ function sortHand(tiles) {
     });
 }
 
-// ── 胡牌判斷 ────────────────────────────────────────────────
-// 規則：4副面子（刻子/順子）+ 1對將，飛牌可替代任意1張
-// 枚舉所有可能的將牌後呼叫 canFormMeldsWithFei() 遞迴驗證
-// 不判斷七對/十三么等特殊牌型（由 classifyWinningHand 處理）
+// ── 胡牌判斷（按花色獨立計算「最少需要幾張飛」）─────────────────
+// 規則：4副面子（刻子/順子）+ 1對將，飛(H)可替代任意1張
+// 原理：各花色互不影響，先算每個花色湊齊面子最少要補幾張飛；
+//       選定將牌後，各花色所需飛數之和 ≤ 手上飛數即胡牌
+//       （多餘的飛必為 3 的倍數，可自成刻子）。
+// 每個花色的 9 格計數壓成一個整數作快取鍵，結果全局複用。
+const _suitCache = new Map();
+
+// 單一數牌花色：arr[0..8] 為 1-9 的張數 → 湊齊面子最少需補的飛數
+function _suitNeed(arr, key) {
+  let hit = _suitCache.get(key);
+  if (hit !== undefined) return hit;
+  hit = _suitNeedRec(arr);
+  _suitCache.set(key, hit);
+  return hit;
+}
+function _suitNeedRec(arr) {
+  const ck = _encode(arr);
+  const c0 = _suitCache.get(ck);
+  if (c0 !== undefined) return c0;
+  const r0 = _suitNeedCalc(arr);
+  _suitCache.set(ck, r0);
+  return r0;
+}
+function _suitNeedCalc(arr) {
+  let i = 0;
+  while (i < 9 && arr[i] === 0) i++;
+  if (i === 9) return 0;
+  let best = 9;
+  // 刻子：用 3/2/1 張真牌 + 0/1/2 飛
+  for (let real = Math.min(3, arr[i]); real >= 1; real--) {
+    arr[i] -= real;
+    const r = 3 - real + _suitNeedRec(arr);
+    arr[i] += real;
+    if (r < best) best = r;
+  }
+  // 順子：起點取 min(i,6)（8、9 只能落在 789 序列內）
+  const base = Math.min(i, 6);
+  let used = [], miss = 0;
+  for (let j = base; j < base + 3; j++) {
+    if (arr[j] > 0) { arr[j]--; used.push(j); } else miss++;
+  }
+  if (used.length >= 1) {
+    const r = miss + _suitNeedRec(arr);
+    if (r < best) best = r;
+  }
+  for (const j of used) arr[j]++;
+  return best;
+}
+function _encode(arr) {
+  let k = 0;
+  for (let i = 0; i < 9; i++) k = k * 8 + arr[i];
+  return k;
+}
+// 字牌：只能刻子
+function _ziNeed(arr) {
+  let n = 0;
+  for (let i = 0; i < 7; i++) n += (3 - (arr[i] % 3)) % 3;
+  return n;
+}
+
 function isWinningHand(tiles) {
   if (!tiles || tiles.length % 3 !== 2) return false;
 
-  const raw = tiles.filter((t) => t[0] !== "H");
-  const feiCount = tiles.length - raw.length;
-  const counts = toCounts(raw);
+  const suits = { M: new Array(9).fill(0), P: new Array(9).fill(0), S: new Array(9).fill(0), Z: new Array(9).fill(0) };
+  let fei = 0;
+  for (const t of tiles) {
+    const c = t[0];
+    if (c === "H") fei++;
+    else if (suits[c]) suits[c][parseInt(t.slice(1), 10) - 1]++;
+  }
+  const names = ["M", "P", "S", "Z"];
+  const need = (n, arr) => (n === "Z" ? _ziNeed(arr) : _suitNeed(arr, _encode(arr)));
+  const base = {};
+  let total = 0;
+  for (const n of names) { base[n] = need(n, suits[n]); total += base[n]; }
 
-  // 試每一種可能作將的牌（含用飛當將）
-  for (let key of Object.keys(counts)) {
-    if (counts[key] >= 2) {
-      counts[key] -= 2;
-      if (canFormMeldsWithFei(counts, feiCount)) {
-        counts[key] += 2;
-        return true;
-      }
-      counts[key] += 2;
-    } else if (counts[key] >= 1 && feiCount >= 1) {
-      counts[key] -= 1;
-      if (canFormMeldsWithFei(counts, feiCount - 1)) {
-        counts[key] += 1;
-        return true;
-      }
-      counts[key] += 1;
-    } else if (feiCount >= 2) {
-      if (canFormMeldsWithFei(counts, feiCount - 2)) return true;
+  // 2 飛作將
+  if (fei >= 2 && total <= fei - 2) return true;
+
+  // 真牌作將（對子 / 單張+1飛）
+  for (const n of names) {
+    const arr = suits[n];
+    const limit = n === "Z" ? 7 : 9;
+    for (let i = 0; i < limit; i++) {
+      if (arr[i] === 0) continue;
+      const pairReal = arr[i] >= 2;
+      if (!pairReal && fei < 1) continue;
+      const cost = pairReal ? 0 : 1;
+      arr[i] -= pairReal ? 2 : 1;
+      const after = total - base[n] + need(n, arr);
+      arr[i] += pairReal ? 2 : 1;
+      if (after + cost <= fei) return true;
     }
   }
-  if (feiCount >= 2 && canFormMeldsWithFei(counts, feiCount - 2)) return true;
   return false;
 }
 
 // ── 牌陣列 → 計數物件 { "M1": 2, "P3": 1, ... } ──────────────
 function toCounts(tiles) {
-  /** @type {Record<string, number>} */
   const c = {};
-  for (let t of tiles) {
-    c[t] = (c[t] || 0) + 1;
-  }
+  for (const t of tiles) c[t] = (c[t] || 0) + 1;
   return c;
 }
 
-// ── 遞迴面子分解（支援飛萬用）─────────────────────────────────
-// 策略：取第一個非零牌，嘗試組成：
-//   1. 刻子（0/1/2 張飛）
-//   2. 順子（firstKey 可作為 pos=0/1/2，即序列首/中/尾）
-// 修正說明：支援 firstKey 在序列任意位，解決 [8,9,飛]→789 被漏判的問題
+// ── 對外保留舊介面（counts 物件版）────────────────────────────
 function canFormMeldsWithFei(counts, feiCount) {
-  // 找第一個非零鍵
-  let firstKey = null;
-  for (const key of Object.keys(counts)) {
-    if (counts[key] > 0) { firstKey = key; break; }
-  }
-  if (!firstKey) return feiCount % 3 === 0;
-
-  const suit = firstKey[0];
-  const v    = parseInt(firstKey.slice(1), 10);
-
-  // ── 1. 刻子（0/1/2 張飛代替）────────────────────────
-  for (let f = 0; f <= Math.min(2, feiCount); f++) {
-    const real = 3 - f;
-    if (counts[firstKey] >= real) {
-      counts[firstKey] -= real;
-      if (canFormMeldsWithFei(counts, feiCount - f)) {
-        counts[firstKey] += real;
-        return true;
-      }
-      counts[firstKey] += real;
-    }
-  }
-
-  // ── 2. 順子（數牌；firstKey 可在序列第 0/1/2 位）───────
-  // pos=0: [firstKey, v+1, v+2]  ← 原本只有這個
-  // pos=1: [v-1, firstKey, v+1]  ← 新增，例 8 在中間 → 7+8+9
-  // pos=2: [v-2, v-1, firstKey]  ← 新增，例 9 在末位 → 7+8+9
-  if (suit !== SUIT_ZI) {
-    for (let pos = 0; pos <= 2; pos++) {
-      const base = v - pos;
-      if (base < 1 || base + 2 > 9) continue; // 序列超出 1-9
-
-      const k = [
-        `${suit}${base}`,
-        `${suit}${base + 1}`,
-        `${suit}${base + 2}`,
-      ];
-
-      // 計算每個非 firstKey 位置需要幾張飛，並記錄是否用真實牌
-      let feisNeeded = 0;
-      const useReal = [false, false, false]; // true = 用手牌真實牌
-      for (let i = 0; i < 3; i++) {
-        if (i === pos) { useReal[i] = true; continue; } // firstKey 自身
-        if ((counts[k[i]] || 0) > 0) {
-          useReal[i] = true; // 有真實牌
-        } else {
-          feisNeeded++;      // 需要用飛代替
-        }
-      }
-      if (feisNeeded > feiCount) continue;
-
-      // 消耗
-      counts[firstKey]--;
-      for (let i = 0; i < 3; i++) {
-        if (i !== pos && useReal[i]) counts[k[i]]--;
-      }
-
-      const ok = canFormMeldsWithFei(counts, feiCount - feisNeeded);
-
-      // 恢復
-      counts[firstKey]++;
-      for (let i = 0; i < 3; i++) {
-        if (i !== pos && useReal[i]) counts[k[i]]++;
-      }
-
-      if (ok) return true;
-    }
-  }
-
-  return false;
+  const arrs = { M: new Array(9).fill(0), P: new Array(9).fill(0), S: new Array(9).fill(0), Z: new Array(9).fill(0) };
+  for (const k of Object.keys(counts)) if (arrs[k[0]]) arrs[k[0]][parseInt(k.slice(1), 10) - 1] += counts[k];
+  let total = 0;
+  for (const n of ["M", "P", "S"]) total += _suitNeed(arrs[n], _encode(arrs[n]));
+  total += _ziNeed(arrs.Z);
+  return total <= feiCount && (feiCount - total) % 3 === 0;
 }
-
-// ── 無飛版面子分解（純手牌檢查，不使用飛萬用）────────────────
-function canFormMelds(counts) {
-  return canFormMeldsWithFei(counts, 0);
-}
+function canFormMelds(counts) { return canFormMeldsWithFei(counts, 0); }
 
 // ── 簡單 AI 棄牌策略（供 easy 難度使用）───────────────────────
 // 優先順序：
@@ -230,10 +218,10 @@ function chooseAiDiscard(hand) {
   if (nonFei.length === 0 && feiTiles.length > 0) return feiTiles[0];
 
   // 優先丟字牌，然後優先丟數牌中離其他牌最遠的
-  const ziTiles = nonFei.filter((t) => t[0] === SUIT_ZI);
-  if (ziTiles.length > 0) {
-    return ziTiles[0];
-  }
+  // 只丟「單張」字牌；對子/刻子字牌要保留
+  const cnt = toCounts(nonFei);
+  const ziSingles = nonFei.filter((t) => t[0] === SUIT_ZI && cnt[t] === 1);
+  if (ziSingles.length > 0) return ziSingles[0];
 
   // 對每張牌算一個「鄰近度」分數，越小越「孤立」（不考慮飛）
   const toScore = nonFei.length ? nonFei : feiTiles;
@@ -248,7 +236,7 @@ function chooseAiDiscard(hand) {
       const ov = parseInt(other.slice(1), 10);
       return Math.abs(ov - v) <= 2;
     });
-    const score = neighbors.length;
+    const score = neighbors.length + (cnt[t] - 1) * 3; // 對子/刻子加權，避免被拆
     if (score < bestScore) {
       bestScore = score;
       bestTile = t;
@@ -263,4 +251,8 @@ window.MJ = {
   sortHand,
   isWinningHand,
   chooseAiDiscard,
+  toCounts,
+  canFormMelds,
+  canFormMeldsWithFei,
 };
+

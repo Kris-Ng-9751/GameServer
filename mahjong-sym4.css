@@ -1,0 +1,47 @@
+/* mahjong-sym4.css — 仅四人麻将（mahjong4.html）使用：以牌桌中心点对称的布局修正 */
+/* ══════════════════════════════════════════════════════════════
+   对称布局（Symmetry）
+   原布局是「风车式」：西家占上两行、东家占下两行、北家偏右、南家偏左，
+   四家弃牌的起排位置与方向也不一致。这里统一为以牌桌中心点对称。
+   ══════════════════════════════════════════════════════════════ */
+/* 1) 网格：南/北横跨三列（以牌桌中轴居中），东/西只占中间行并垂直居中；
+      上下两行用 1fr 等高，绒面（弃牌区）正好落在牌桌正中 */
+.table{
+  grid-template-areas: "north north north" "west middle east" "south south south";
+  grid-template-rows: 1fr auto 1fr;
+}
+.seat-north{ align-self:start; }
+.seat-south{ align-self:end; }
+
+/* 2) 行动按钮脱离文档流，固定在手牌行右侧空位（两列堆叠，向上生长）：
+      出现/消失时手牌不再左右跳动，也不会盖住名牌 */
+@media (min-width:801px){
+  .seat-south .action-bar{
+    position:absolute; right:10px; bottom:10px; z-index:6; padding:0;
+    width:calc(var(--sidebar-w) - 6px);
+    flex-wrap:wrap; justify-content:flex-end; align-content:flex-end; gap:5px;
+  }
+  .seat-south .action-bar .btn-action{
+    width:calc(50% - 3px); min-width:0; height:34px; padding:0 !important;
+    font-size:.82rem; letter-spacing:0; display:inline-flex; align-items:center; justify-content:center;
+  }
+}
+/* ≤800px（手机/小窗）侧栏太窄放不下按钮列，保持原来的行内布局 */
+/* 空的副露行不占位 → 手牌（含副露）以座位中心严格居中 */
+.melds-row:empty{ display:none; }
+
+/* 3) 四家弃牌统一「中心旋转对称」：首排贴本家一侧（外沿），新牌依本家视角由左到右、逐排向中心叠加
+      北：右→左，首排在上　南：左→右，首排在下
+      西：上→下，首列在左　东：下→上，首列在右 */
+.dc-north .discard-row-h{ flex-direction:row-reverse; align-content:flex-start; }
+/* 原 styles.css 里靠后的通用 .discard-row 覆盖了南家的 wrap-reverse（导致南棄贴上沿），这里提高优先级修正 */
+.discard-center .south-discard-row{ flex-wrap:wrap-reverse; align-content:flex-start; }  /* wrap-reverse 下 flex-start = 底边 */
+.dc-west .discard-row-v{ align-content:flex-start; }
+.dc-east .discard-row-v{ flex-direction:column-reverse; flex-wrap:wrap-reverse; align-content:flex-start; }
+/* 东家补偿负边距改放在「前一张的上方」，与西家镜像（否则东家多偏 ~11px） */
+.dc-east .tile.discarded{ margin-bottom:0 !important; margin-top:calc(var(--dw) - var(--dh) + 2px) !important; }
+/* 名牌让出行动按钮列；南/北保持 180° 旋转对称 */
+@media (min-width:801px){
+  .seat-south .seat-label{ right:calc(var(--sidebar-w) + 6px); }
+  .seat-north .seat-label{ left:calc(var(--sidebar-w) + 6px); }
+}

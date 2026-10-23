@@ -7,12 +7,15 @@
   - 右上角浮動菜單取代原有菜單
   - 竪屏時顯示旋轉提示（#rotate-prompt）
   - 首次啟動需輸入玩家名字（name-input-overlay）
-  引用：styles.css / mahjong-core.js / game.js
+  引用：styles.css / mahjong-core.js / mahjong4.js
   ══════════════════════════════════════════════════════════════
 -->
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <!-- user-scalable=no：禁止手勢縮放，避免誤操作 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -620,10 +623,11 @@ body.is-mobile .seat-south {
   padding-bottom: max(env(safe-area-inset-bottom,4px),4px) !important;
 }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body class="is-mobile">
   <!-- BGM -->
-  <audio id="bgm" loop preload="auto">
+  <audio id="bgm" loop preload="metadata">
     <source src="bgm.mp3" type="audio/mpeg">
   </audio>
 
@@ -1091,9 +1095,9 @@ body.is-mobile .seat-south {
     <div class="rotate-sub">麻將遊戲橫屏效果更佳</div>
   </div>
 
-  <!-- 先載入核心工具庫，再載入四人版遊戲邏輯（手機版共用 game.js）-->
+  <!-- 先載入核心工具庫，再載入四人版遊戲邏輯（手機版共用 mahjong4.js）-->
   <script src="mahjong-core.js"></script>
-  <script src="game.js"></script>
+  <script src="mahjong4.js"></script>
 
   <script>
   /* ── 橫屏強制：嘗試鎖定橫屏，同時監聽方向變化以顯示/隱藏提示 ── */

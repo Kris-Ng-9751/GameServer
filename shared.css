@@ -1,0 +1,31 @@
+/* shared.css — 全站共用基础样式（只做「增强」，不改各页面原有布局） */
+:root { color-scheme: dark; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* 触屏：去掉点击高亮与双击缩放延迟，按钮/卡片不被误选中文字 */
+button, a, [role="button"], .game-card, .tile, .card, [onclick] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button { -webkit-user-select: none; user-select: none; }
+
+/* 键盘可达：统一的焦点环（只在键盘操作时出现，鼠标点击不会闪） */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid #ffd24a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 游戏进行中避免「下拉刷新 / 回弹」误触（手机浏览器） */
+body { overscroll-behavior-y: contain; }
+
+/* 尊重「减少动态效果」系统设置：关掉装饰性循环动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
