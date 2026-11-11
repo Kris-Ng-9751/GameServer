@@ -1,145 +1,192 @@
-/* mj-landscape.css — 四人麻将「手机横屏」专用布局（仅 mahjong4.html 加载，放在 mj-modern.css 之后）
-   原牌桌是竖向「风车」布局（约 650×730），横屏手机上只能缩到 0.4 倍。这里不改 DOM、不改逻辑，
-   只在「横屏 + 矮屏」时把牌桌重排成横向：
-     ┌ 西家手牌 ┬ 北家手牌 ┬ 东家手牌 ┐   ← AI 手牌压成一排小条
-     │ 西棄 ·  北棄  · 东棄            │   ← 中央牌河（四家都横排、牌面朝上，好读）
-     │          南棄                   │
-     └ 玩家手牌（左）        行动按钮（右）┘
-*/
+/* mj-landscape.css — 四人麻将「手机横屏」牌桌（雀魂式布局）。仅 mahjong4.html 加载，放在 mj-modern.css 之后。
+   不改规则逻辑：保留全部 DOM id，只用 CSS 把牌桌重排成手游常见的横屏构图——
+     · 整个牌桌铺满屏幕（不再整体缩放），尺寸全部跟随屏幕高度（--H）
+     · 中央一块深色「牌河垫」：四家牌河围着中央信息盘，每家 7 张一排、最多 3 排（共 21 ≥ 20）
+     · 四家头像卡在四角（头像 + 名字 + 分数），庄家徽章在头像角上
+     · AI 手牌缩成边上的小条，玩家大手牌贴底，行动按钮浮在手牌右上方 */
 @media (orientation: landscape) and (max-height: 560px) {
 
-  /* ── 1) 尺寸变量：整体缩小，牌面图案同步缩小 ── */
+  /* ── 1) 尺寸：全部由屏幕高度推出，牌面图案同比缩放 ── */
   :root {
-    --tw: 20px;  --th: 27px;
-    --pw: 28px;  --ph: 38px;
-    --sw: 13px;  --sh: 18px;
-    --mw: 14px;  --mh: 19px;
-    --dw: 15px;  --dh: 20px;
+    --H: calc(100vh - 34px);
+    --pw: min(calc(var(--H) * 0.122), calc((100vw - 330px) / 15.8), 52px);
+    --ph: calc(var(--pw) * 1.36);
+    --dw: calc(var(--H) * 0.05);   --dh: calc(var(--dw) * 1.34);
+    --sw: calc(var(--H) * 0.042);   --sh: calc(var(--sw) * 1.4);
+    --mw: calc(var(--H) * 0.046);   --mh: calc(var(--mw) * 1.34);
+    --tw: calc(var(--H) * 0.075);   --th: calc(var(--tw) * 1.35);
     --sidebar-w: 0px;
-    --tf: 0.66rem;  --ptf: 0.9rem;
-    --tcf: 0.26rem; --tsf: 0.30rem;
-    --pin-cw: 4px;  --pin-ch: 4px;  --pin-ds: 3px;  --pin-1s: 12px;
-    --ppin-cw: 7px; --ppin-ch: 7px; --ppin-ds: 6px; --ppin-1s: 20px;
-    --dpin-cw: 2px; --dpin-ch: 2px; --dpin-ds: 2px; --dpin-1s: 6px;
-    --bam-w: 2px;  --bam-h: 5px;  --bam-sw: 3px;  --bam-sh: 14px;
-    --pbam-w: 4px; --pbam-h: 9px; --pbam-sw: 6px; --pbam-sh: 22px;
-    --dbam-w: 1px; --dbam-h: 3px; --dbam-sw: 2px; --dbam-sh: 6px;
-    --bam-wrap-w: 12px; --pbam-wrap-w: 22px; --dbam-wrap-w: 7px;
+    --tf: calc(var(--dw) * 0.62);   --ptf: calc(var(--pw) * 0.5);
+    --tcf: calc(var(--dw) * 0.26);  --tsf: calc(var(--dw) * 0.3);
+    --pin-cw: calc(var(--tw) * 0.2);   --pin-ch: calc(var(--tw) * 0.2);   --pin-ds: calc(var(--tw) * 0.15);  --pin-1s: calc(var(--tw) * 0.6);
+    --ppin-cw: calc(var(--pw) * 0.25); --ppin-ch: calc(var(--pw) * 0.25); --ppin-ds: calc(var(--pw) * 0.21); --ppin-1s: calc(var(--pw) * 0.71);
+    --dpin-cw: calc(var(--dw) * 0.27); --dpin-ch: calc(var(--dw) * 0.27); --dpin-ds: calc(var(--dw) * 0.21); --dpin-1s: calc(var(--dw) * 0.55);
+    --bam-w: calc(var(--tw) * 0.1);    --bam-h: calc(var(--tw) * 0.25);   --bam-sw: calc(var(--tw) * 0.15);  --bam-sh: calc(var(--tw) * 0.7);
+    --pbam-w: calc(var(--pw) * 0.14);  --pbam-h: calc(var(--pw) * 0.32);  --pbam-sw: calc(var(--pw) * 0.21); --pbam-sh: calc(var(--pw) * 0.78);
+    --dbam-w: calc(var(--dw) * 0.13);  --dbam-h: calc(var(--dw) * 0.3);   --dbam-sw: calc(var(--dw) * 0.2); --dbam-sh: calc(var(--dw) * 0.62);
+    --bam-wrap-w: calc(var(--tw) * 0.6); --pbam-wrap-w: calc(var(--pw) * 0.78); --dbam-wrap-w: calc(var(--dw) * 0.5);
   }
-
-  body { padding: 0 max(env(safe-area-inset-right), 6px) 0 max(env(safe-area-inset-left), 6px) !important; }
+  body { padding: 0 !important; overflow: hidden; }
 
   /* ── 2) 顶栏压成一行 ── */
-  .top-bar { padding: 1px 8px !important; min-height: 0 !important; height: 34px !important; gap: 6px !important; }
+  .top-bar { padding: 1px max(env(safe-area-inset-right), 8px) 1px max(env(safe-area-inset-left), 8px) !important; min-height: 0 !important; height: 34px !important; gap: 6px !important; }
   .top-bar-sub, .top-bar .subtitle { display: none !important; }
   .top-bar h1, .top-bar-title { font-size: 0.9rem !important; line-height: 1.1 !important; }
   .top-bar .btn, .top-bar button, .game-menu-btn { padding: 2px 10px !important; font-size: 0.74rem !important; min-height: 0 !important; height: 26px !important; }
-  .flowers .tile, .flowers-row .tile { font-size: 0.42rem !important; }
   #bgm-volume { width: 48px !important; }
+  .log-panel-float { display: none !important; }
+  .mj-credit { bottom: 1px !important; right: 8px !important; font-size: 0.5rem !important; z-index: 1 !important; }
 
-  /* ── 3) 牌桌网格：上排三家 AI 小条 / 中央牌河 / 下排玩家 ── */
+  /* ── 3) 牌桌：铺满屏幕的毛毡，所有座位绝对定位 ── */
+  #app { padding: 0 !important; }
+  .table-wrapper { position: static !important; transform: none !important; height: auto !important; width: auto !important; }
   .table {
-    width: calc(100vw - 16px) !important; max-width: 900px !important; margin: 0 auto;
-    padding: 6px 8px 6px !important; gap: 4px !important;
-    grid-template-areas: "west north east" "middle middle middle" "south south south" !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    grid-template-rows: auto auto auto !important;
-    border-radius: 12px !important;
+    position: fixed !important; left: 0; right: 0; top: 34px; bottom: 0; width: auto !important; max-width: none !important; height: auto !important;
+    margin: 0 !important; padding: 0 !important; display: block !important; border-radius: 0 !important; box-shadow: none !important; overflow: hidden;
+    background:
+      radial-gradient(ellipse 62% 78% at 50% 50%, rgba(255,255,255,.07), transparent 70%),
+      radial-gradient(ellipse 120% 130% at 50% 50%, #1b7560 0%, #14604d 42%, #0b3a30 100%) !important;
   }
-  .seat-west, .seat-east, .seat-north {
-    align-self: start !important; justify-content: flex-start !important;
-    max-width: none !important; width: 100%; padding: 0 !important; min-width: 0;
-  }
-  .seat-west .ai-hand-flower-row, .seat-east .ai-hand-flower-row, .ai-hand-flower-row {
-    flex-direction: column !important; align-items: center !important; gap: 2px !important;
-  }
-  .seat-east .ai-hand-flower-row { flex-direction: column-reverse !important; }
-  .ai-hand-melds-col { flex-direction: column !important; align-items: center !important; gap: 2px !important; }
-  /* 东家：DOM 里手牌在上、副露在下；西家：副露在上、手牌在下 → 统一手牌在上 */
-  .seat-west .ai-hand-melds-col { flex-direction: column-reverse !important; }
+  .table::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 62%, rgba(0,0,0,.38) 100%); }
+  .seat { position: absolute !important; padding: 0 !important; margin: 0 !important; width: auto !important; max-width: none !important; min-width: 0 !important; z-index: 2; }
 
-  .seat .hand-ai, .seat-west .hand-ai, .seat-east .hand-ai, .seat-north .hand-ai {
-    flex-direction: row !important; flex-wrap: nowrap !important; gap: 1px !important;
-    padding: 0 !important; min-height: 0 !important; width: auto !important; justify-content: center;
+  /* ── 4) 中央：牌河垫 + 四家牌河 + 信息盘 ── */
+  .middle-area { position: static !important; display: block !important; width: max-content; margin: calc(var(--H) * 0.13) auto 0 !important; padding: 0 !important; }
+  .discard-center {
+    position: static !important; display: grid !important; padding: 7px 10px !important; gap: 3px 8px !important; width: auto !important; height: auto !important;
+    grid-template-columns: auto auto auto; grid-template-areas: "w n e" "w c e" "w s e"; align-items: center; justify-items: center;
+    background: rgba(0, 28, 22, 0.34) !important; border: 1px solid rgba(255,255,255,.09) !important; border-radius: 16px !important; box-shadow: inset 0 0 22px rgba(0,0,0,.35) !important;
   }
-  /* AI 的牌、副露、花牌一律朝上，不旋转（小屏上旋转牌无法阅读） */
-  .seat-north .hand-ai .tile, .seat-west .hand-ai .tile, .seat-east .hand-ai .tile,
-  .seat-north .melds-row .tile, .seat-west .melds-row .tile, .seat-east .melds-row .tile,
-  .seat-north .flowers-row .tile, .seat-west .flowers-row-side .tile, .seat-east .flowers-row-side .tile {
-    transform: none !important; margin: 0 !important; width: var(--sw) !important; height: var(--sh) !important;
-  }
-  .seat-west .melds-row, .seat-east .melds-row, .melds-row.melds-north, .seat-north .melds-row {
-    flex-direction: row !important; flex-wrap: wrap !important; justify-content: center; gap: 3px !important; min-width: 0 !important;
-  }
-  .seat-west .melds-row .meld, .seat-east .melds-row .meld { flex-direction: row !important; margin: 0 !important; }
-  .flowers-row, .seat-north .flowers-row, .flowers-row-side {
-    flex-direction: row !important; flex-wrap: wrap !important; min-height: 0 !important; min-width: 0 !important;
-    justify-content: center; gap: 1px !important; padding: 0 !important;
-  }
-  .flowers, .flowers-col { flex-direction: row !important; flex-wrap: wrap !important; gap: 1px !important; justify-content: center; }
-  .flowers-row:has(.flowers:empty) { display: none !important; }
-  .flowers-label { display: none !important; }
-  .flowers .tile [class*="corner"], .flowers-row .tile [class*="corner"], .flowers .tile .flower-no, .flowers .tile .flower-name { display: none !important; }
+  .discard-center::before, .discard-center::after, .middle-area::before, .middle-area::after { display: none !important; }
+  .dc-compass-row, .dc-compass-mid { display: contents !important; }
+  .dc-cell { position: static !important; display: block !important; padding: 0 !important; margin: 0 !important; width: auto !important; min-height: 0 !important; }
+  .dc-north { grid-area: n; } .dc-west { grid-area: w; } .dc-east { grid-area: e; } .dc-south { grid-area: s; } .dc-center-void { grid-area: c; flex: none !important; }
 
-  /* ── 4) 中央牌河 ── */
-  .middle-area { padding: 0 !important; }
-  .discard-center { padding: 4px 8px !important; gap: 2px !important; }
-  .dc-compass-row { justify-content: center; }
-  .dc-compass-mid { gap: 6px !important; justify-content: space-between !important; align-items: center !important; }
-  .dc-center-void { flex: 0 0 auto !important; }
-  .dc-cell { padding: 2px 4px !important; margin: 0 !important; width: auto !important;
-    flex-direction: row !important; align-items: center !important; gap: 6px !important; }
-  /* 名牌回到正常流、横排、不旋转：放在牌河旁边 */
-  .dc-cell > .seat-label { position: static !important; transform: none !important; margin: 0 !important; width: max-content;
-    padding: 2px 8px !important; font-size: 0.7rem !important; gap: 4px !important; flex-shrink: 0; }
-  .dc-cell > .seat-label .game-avatar { font-size: 0.85rem !important; width: 18px !important; height: 18px !important; line-height: 18px !important; }
-  .dc-cell > .seat-label .seat-score { padding: 0 6px !important; font-size: 0.7rem !important; }
-  .dc-cell > .seat-label .dealer-badge { padding: 0 5px !important; font-size: 0.62rem !important; }
-  /* 名牌在外侧、牌河在内侧（西/北/南：名牌在左；东：名牌在右） */
-  .dc-cell > .seat-label { order: -1; }
-  .dc-east { flex-direction: row-reverse !important; }
-
-  /* 四家牌河统一：横排 10×2，牌面朝上，从左到右、首排在上 */
-  .discard-row-h, .discard-row-v, .south-discard-row,
-  .dc-north .discard-row-h, .dc-west .discard-row-v, .dc-east .discard-row-v, .discard-center .south-discard-row {
-    display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-content: flex-start !important;
-    gap: 2px !important; width: calc(10 * var(--dw) + 9 * 2px) !important; height: calc(2 * var(--dh) + 2px) !important;
-    min-height: 0 !important; overflow: hidden; flex-shrink: 0;
+  /* 牌河：每家 7 张一排 × 3 排。北：右→左，首排在上；南：左→右，首排在下；西：上→下，首列在左；东：下→上，首列在右 */
+  .discard-center .discard-row { overflow: visible !important; flex-shrink: 0; min-height: 0 !important; gap: 1px !important; }
+  .discard-center .dc-north .discard-row-h, .discard-center .south-discard-row {
+    display: flex !important; flex-wrap: wrap !important; align-content: flex-start !important;
+    width: calc(7 * (var(--dw) + 1px)) !important; height: calc(3 * (var(--dh) + 1px)) !important;
   }
-  .dc-west .tile.discarded, .dc-east .tile.discarded, .dc-north .tile.discarded, .dc-south .tile.discarded {
-    transform: none !important; margin: 0 !important; width: var(--dw); height: var(--dh);
+  .discard-center .dc-north .discard-row-h { flex-direction: row-reverse !important; }
+  .discard-center .south-discard-row { flex-direction: row !important; flex-wrap: wrap-reverse !important; }
+  .discard-center .dc-west .discard-row-v, .discard-center .dc-east .discard-row-v {
+    display: grid !important; grid-auto-flow: column !important; flex-direction: unset !important;
+    grid-template-rows: repeat(7, var(--dw)) !important; grid-auto-columns: var(--dh) !important;
+    width: calc(3 * (var(--dh) + 1px)) !important; height: calc(7 * (var(--dw) + 1px)) !important;
   }
-  .tile.discarded.active-discard { transform: scale(1.12) !important; }
+  .discard-center .dc-east .discard-row-v { transform: rotate(180deg); }
+  .discard-center .tile.discarded { width: var(--dw) !important; height: var(--dh) !important; margin: 0 !important; border-radius: 3px; }
+  .discard-center .dc-north .tile.discarded { transform: rotate(180deg) !important; }
+  .discard-center .dc-south .tile.discarded { transform: none !important; }
+  .discard-center .dc-west .tile.discarded, .discard-center .dc-east .tile.discarded { transform: rotate(90deg) !important; place-self: center; }
+  .discard-center .tile.discarded.active-discard { outline: 2px solid #ffd24a; outline-offset: 0; z-index: 3; box-shadow: 0 0 10px 2px rgba(255, 210, 74, .85) !important; animation: none !important; }
+  .discard-center .tile.discarded .tile-corner { display: none !important; }
+  /* 牌河里的牌面：以 --dw 为基准重算字号/图案（原规则按玩家牌 --ptf 计算，缩小后会溢出） */
+  .discard-center .tile.discarded .tile-value { font-size: calc(var(--dw) * 0.66) !important; }
+  .discard-center .tile.discarded.zi-dark .tile-value, .discard-center .tile.discarded.zi-red .tile-value,
+  .discard-center .tile.discarded.zi-green .tile-value, .discard-center .tile.discarded.fei .tile-value { font-size: calc(var(--dw) * 0.8) !important; }
+  .discard-center .tile.discarded.zi-white .tile-value { font-size: calc(var(--dw) * 0.62) !important; }
+  .discard-center .tile.discarded .tile-suit { font-size: calc(var(--dw) * 0.42) !important; }
+  .discard-center .tile.discarded.man .man-value { font-size: calc(var(--dw) * 0.62) !important; line-height: 1 !important; }
+  .discard-center .tile.discarded.man .man-suit  { font-size: calc(var(--dw) * 0.46) !important; line-height: 1 !important; }
+  .discard-center .tile.discarded .pin-circle { width: var(--dpin-ds) !important; height: var(--dpin-ds) !important; }
+  .discard-center .tile.discarded .pin-grid { grid-template-columns: repeat(3, var(--dpin-cw)) !important; grid-template-rows: repeat(3, var(--dpin-ch)) !important; }
+  .discard-center .tile.discarded .pin-grid-2x4 { grid-template-columns: repeat(2, var(--dpin-cw)) !important; grid-template-rows: repeat(4, var(--dpin-ch)) !important; }
+  .discard-center .tile.discarded .tile-bamboo { grid-template-columns: repeat(var(--bam-cols, 2), var(--dbam-w)) !important; gap: 1px !important; }
+  .discard-center .tile.discarded .bam-stick { width: var(--dbam-w) !important; height: var(--dbam-h) !important; }
 
-  /* 轮到谁：缩小的罗盘 */
-  .turn-compass, #turn-compass { width: 50px !important; height: 50px !important; gap: 0 !important; }
-  .tc-arrow { font-size: 0.7rem !important; }
+  /* 中央信息盘：牌山余量 + 四方向指示（轮到谁就亮谁） */
+  .turn-compass, #turn-compass {
+    position: relative; width: calc(7 * (var(--dw) + 1px)) !important; height: calc(var(--H) * 0.14) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 12px !important;
+    background: linear-gradient(180deg, #0d2c26, #081c18) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 3px 8px rgba(0,0,0,.4) !important;
+  }
+  .tc-middle-row { display: block !important; }
   .tc-dir { display: none !important; }
-  .tc-wall { padding: 0 3px !important; }
-  .tc-wall-label { font-size: 0.45rem !important; }
-  .tc-wall-count { font-size: 0.85rem !important; }
+  .tc-arrow { position: absolute !important; font-size: 0.62rem !important; line-height: 1 !important; color: rgba(255,255,255,.22) !important; margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; }
+  .tc-arrow.tc-north { top: 3px; left: 50%; transform: translateX(-50%); }
+  .tc-arrow.tc-south { bottom: 3px; left: 50%; transform: translateX(-50%); }
+  .tc-arrow.tc-west  { left: 6px; top: 50%; transform: translateY(-50%); }
+  .tc-arrow.tc-east  { right: 6px; top: 50%; transform: translateY(-50%); }
+  .tc-arrow.tc-active { color: #ffd24a !important; text-shadow: 0 0 8px #ffb400 !important; animation: none !important; }
+  .tc-wall { position: absolute; inset: 0; display: flex !important; flex-direction: column; align-items: center; justify-content: center; background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 0 4px !important; }
+  .tc-wall-label { font-size: 0.52rem !important; letter-spacing: .12em; color: #7fbfae !important; }
+  .tc-wall-count { font-size: calc(var(--H) * 0.062) !important; line-height: 1 !important; color: #fff !important; font-weight: 800; }
 
-  /* ── 5) 玩家区：手牌在左，行动按钮在右 ── */
-  .seat-south { align-self: end !important; padding: 0 !important; align-items: stretch !important; }
-  .hand-center { width: 100%; }
-  .hand-melds-row { display: flex; align-items: flex-end; justify-content: flex-start; gap: 6px; padding: 0 206px 0 154px; min-width: 0; }
-  .hand-player { min-height: 0 !important; padding: 4px 6px !important; gap: 3px !important; overflow-x: auto; max-width: 100%; }
-  .tile.player { min-width: 0 !important; min-height: 0 !important; }
-  .tile.player.drawn-tile { margin-left: 8px !important; }
-  .seat-south .flowers-row-above { position: absolute !important; left: 4px; bottom: 6px; width: 150px; min-height: 0 !important; justify-content: flex-start !important; z-index: 2; }
-  .seat-south .flowers-row-above .tile { width: var(--sw) !important; height: var(--sh) !important; }
+  /* ── 5) 四家头像卡（四角）：头像 + 名字 + 分数，庄家徽章挂在头像角上 ── */
+  .dc-cell > .seat-label {
+    position: absolute !important; transform: none !important; margin: 0 !important; z-index: 7; width: auto; max-width: none;
+    display: flex !important; flex-direction: column; align-items: center; gap: 2px;
+    padding: 4px 8px 4px !important; border-radius: 12px !important; background: rgba(6, 26, 22, 0.78) !important; border: 1px solid rgba(255,255,255,.14) !important;
+    font-size: 0.6rem !important; line-height: 1.1; color: #e8f4f0; backdrop-filter: none !important; box-shadow: 0 3px 10px rgba(0,0,0,.4);
+  }
+  .dc-cell > .seat-label .game-avatar {
+    width: calc(var(--H) * 0.105) !important; height: calc(var(--H) * 0.105) !important; line-height: 1 !important; font-size: calc(var(--H) * 0.065) !important;
+    display: grid !important; place-items: center; border-radius: 50% !important; background: #123a32 !important; border: 2px solid #e9b949 !important; margin: 0 !important; overflow: hidden;
+  }
+  .dc-cell > .seat-label .seat-score { padding: 1px 7px !important; border-radius: 999px !important; background: rgba(0,0,0,.4) !important; color: #ffe08a !important; font-size: 0.66rem !important; font-weight: 700; }
+  .dc-cell > .seat-label .dealer-badge { position: absolute; top: -6px; left: -6px; padding: 1px 5px !important; font-size: 0.55rem !important; border-radius: 999px !important; }
+  .dc-cell > .seat-label.lbl-west  { left: 10px !important; right: auto !important; top: 8px !important; bottom: auto !important; }
+  .dc-cell > .seat-label.lbl-east  { right: 10px !important; left: auto !important; top: 8px !important; bottom: auto !important; }
+  .dc-cell > .seat-label.lbl-south { left: 10px !important; right: auto !important; bottom: 8px !important; top: auto !important; }
+  .dc-cell > .seat-label.lbl-north { left: calc(50% + 150px) !important; right: auto !important; top: 6px !important; bottom: auto !important; }
+
+  /* ── 6) AI 座位：边上的小条 ── */
+  .seat-north { left: 0; right: 0; top: 2px; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .seat-north .ai-hand-flower-row { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 8px !important; min-height: 0 !important; }
+  .seat-north .melds-row:empty { display: none !important; }
+  .seat-west  { left: 14px; top: calc(var(--H) * 0.29); }
+  .seat-east  { right: 14px; top: calc(var(--H) * 0.29); }
+  .seat-west .ai-hand-flower-row, .seat-east .ai-hand-flower-row { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: 5px !important; }
+  .seat-west .ai-hand-melds-col { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 4px !important; }
+  .seat-east .ai-hand-melds-col { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 4px !important; }
+  .seat .hand-ai { display: flex !important; gap: 1px !important; padding: 0 !important; min-height: 0 !important; width: auto !important; }
+  .seat-north .hand-ai { flex-direction: row !important; }
+  .seat-west .hand-ai, .seat-east .hand-ai { flex-direction: column !important; }
+  .seat-north .hand-ai .tile { width: var(--sw) !important; height: var(--sh) !important; transform: none !important; margin: 0 !important; }
+  .seat-west .hand-ai .tile, .seat-east .hand-ai .tile { width: calc(var(--sh) * 0.95) !important; height: calc(var(--sw) * 0.7) !important; transform: none !important; margin: 0 !important; }
+  .seat-north .melds-row, .seat-west .melds-row, .seat-east .melds-row { display: flex !important; gap: 3px !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .seat-north .melds-row { flex-direction: row !important; }
+  .seat-west .melds-row, .seat-east .melds-row { flex-direction: column !important; }
+  .seat .melds-row .meld { display: flex !important; flex-direction: row !important; margin: 0 !important; gap: 0; }
+  .seat-north .melds-row .tile, .seat-west .melds-row .tile, .seat-east .melds-row .tile { width: var(--sw) !important; height: var(--sh) !important; transform: none !important; margin: 0 !important; }
+  .seat .flowers-row, .seat .flowers-row-side { display: flex !important; flex-wrap: wrap !important; flex-direction: row !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; gap: 1px !important; justify-content: center; }
+  .seat .flowers, .seat .flowers-col { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 1px !important; justify-content: center; max-width: calc(5 * (var(--sw) + 1px)); }
+  .seat .flowers-row:has(.flowers:empty) { display: none !important; }
+  .seat .flowers-label { display: none !important; }
+  .seat .flowers .tile, .seat .flowers-row .tile { width: var(--sw) !important; height: var(--sh) !important; transform: none !important; margin: 0 !important; font-size: 0.4rem !important; }
+  .seat .flowers .tile [class*="corner"] { display: none !important; }
+  .seat-north .flowers-row { margin-top: 1px !important; }
+
+  /* ── 7) 玩家：大手牌贴底，行动按钮浮在右上 ── */
+  .seat-south { left: 0; right: 0; bottom: 6px; display: flex !important; flex-direction: column; align-items: center; z-index: 6; pointer-events: none; }
+  .seat-south > * { pointer-events: auto; }
+  .seat-south .hand-center { width: auto; }
+  .hand-melds-row { display: flex !important; align-items: flex-end !important; justify-content: center !important; gap: 8px !important; padding: 0 !important; min-width: 0; }
+  .seat-south .melds-row { display: flex !important; gap: 4px !important; padding: 0 !important; }
+  .seat-south .melds-row .meld { display: flex; gap: 0; }
+  .seat-south .melds-row .tile { width: var(--pw) !important; height: var(--ph) !important; }
+  .hand-player { display: flex !important; gap: 1px !important; padding: 0 !important; min-height: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; overflow: visible !important; width: auto !important; max-width: none !important; }
+  .tile.player { width: var(--pw) !important; height: var(--ph) !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
+  .tile.player.drawn-tile { margin-left: calc(var(--pw) * 0.35) !important; }
+  .seat-south .flowers-row-above { position: absolute !important; left: 12px; bottom: calc(var(--H) * 0.30); width: calc(5 * (var(--sw) + 1px)); pointer-events: auto; }
   .seat-south .action-bar {
-    position: absolute !important; right: 4px !important; bottom: 4px !important; width: 200px !important;
-    flex-wrap: wrap !important; justify-content: flex-end !important; align-content: flex-end !important; gap: 4px !important; padding: 0 !important;
+    position: fixed !important; right: 46px !important; bottom: calc(var(--ph) + 22px) !important; left: auto !important; width: auto !important; max-width: 300px;
+    display: flex; flex-wrap: wrap !important; justify-content: flex-end !important; align-content: flex-end !important; gap: 6px !important; padding: 0 !important; z-index: 20;
   }
   .seat-south .action-bar .btn-action {
-    width: calc(25% - 3px) !important; min-width: 0 !important; min-height: 0 !important; height: 34px !important;
-    padding: 0 !important; font-size: 0.8rem !important; border-radius: 9px !important;
+    width: auto !important; min-width: 48px !important; min-height: 0 !important; height: 36px !important; padding: 0 14px !important; font-size: 0.95rem !important; font-weight: 800;
+    border-radius: 18px !important; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 6px 12px rgba(0,0,0,.4) !important; border: 1px solid rgba(255,255,255,.25) !important;
   }
 
-  /* 消息记录折成右上角小条，悬停/点按展开 */
-  .log-panel-float { display: none !important; }
-  .mj-credit { bottom: 1px !important; right: 8px !important; font-size: 0.5rem !important; }
+  /* ── 8) 牌的质感：象牙白牌面 + 翠绿牌厚，手游里常见的立体感 ── */
+  .tile:not(.back) { border-radius: 4px !important; background: linear-gradient(180deg, #fffdf6, #f1ecdd) !important;
+    box-shadow: 0 1px 0 #fff inset, 0 2px 0 #3fae8a, 0 3px 0 #1f7a5d, 0 5px 6px rgba(0,0,0,.45) !important; }
+  .discard-center .tile.discarded:not(.back) { box-shadow: 0 1px 0 #fff inset, 0 1px 0 #2f9a78, 0 2px 0 #1f7a5d, 0 3px 4px rgba(0,0,0,.45) !important; }
+  .tile.back { border-radius: 3px !important; background: linear-gradient(180deg, #2f9b82, #1c7560) !important; box-shadow: 0 1px 0 rgba(255,255,255,.3) inset, 0 1px 0 #0f4d3e, 0 2px 3px rgba(0,0,0,.45) !important; }
+  .hand-player .tile:hover { translate: 0 calc(var(--ph) * -0.16); }
+  .tile.recommend-tile { animation: none !important; box-shadow: 0 0 0 2px #7dffb0, 0 0 10px rgba(125,255,176,.8) !important; }
 
   /* ── 6) 弹窗在矮屏上不被裁切：整体可滚动 ── */
   .dice-overlay, .chi-select-overlay, .win-overlay, .tile-ref-overlay, .tenpai-overlay {
