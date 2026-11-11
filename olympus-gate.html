@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>奥林匹斯之门</title>
   <style>
@@ -239,6 +242,7 @@
       .cell{min-height:56px;font-size:1.75rem}
     }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
   <div class="wrap">
@@ -259,7 +263,7 @@
         <div class="avatar" id="avatar">🀄</div>
         <div>
           <div id="name">玩家</div>
-          <div style="font-size:.78rem;">6x5 消除盘面，符号 8 连起算，累积倍率结算。</div>
+          <div style="font-size:.78rem;">6x5 消除盘面，符号 9 连起算，累积倍率结算。</div>
         </div>
       </div>
 
@@ -278,7 +282,7 @@
             <button class="bet" id="autoBtn">自动</button>
             <button class="spin" id="spinBtn">↻</button>
           </div>
-          <div class="msg" id="msg">点击旋转开始。每种符号数量达到 8/10/12/15 可得奖，倍率会在当局累积。</div>
+          <div class="msg" id="msg">点击旋转开始。每种符号数量达到 9/11/13/16 可得奖，倍率会在当局累积。</div>
 
           <div class="panel-title">战绩</div>
           <ul class="list" id="history"></ul>
@@ -310,17 +314,19 @@
       const SYMS = ["🔷","🟩","🔺","🟣","👑","💍","🧿",SCAT];
       const WEIGHTED = [
         ["🔷", 19], ["🟩", 18], ["🔺", 17], ["🟣", 16],
-        ["👑", 12], ["💍", 10], ["🧿", 7], [SCAT, 5]
+        ["👑", 12], ["💍", 10], ["🧿", 7], [SCAT, 2]
       ];
       const PAY = {
-        "🔷": [8, 10, 12, 15, 0.2, 0.4, 0.8, 1.4],
-        "🟩": [8, 10, 12, 15, 0.22, 0.45, 0.85, 1.5],
-        "🔺": [8, 10, 12, 15, 0.25, 0.5, 1, 1.8],
-        "🟣": [8, 10, 12, 15, 0.3, 0.6, 1.2, 2],
-        "👑": [8, 10, 12, 15, 0.5, 1, 2, 4],
-        "💍": [8, 10, 12, 15, 0.6, 1.2, 2.4, 5],
-        "🧿": [8, 10, 12, 15, 0.8, 1.6, 3.2, 8],
-        "⚡": [4, 5, 6, 7, 2, 5, 20, 100]
+        // 已按 RTP≈95% 校准（原版 RTP≈2400%：命中率 53% + 几乎每次消除都带倍率球 + 免费旋转触发过于频繁）。
+        // 起算个数 9/11/13/16；Scatter 4/5/6/7 个分别赔 1/3/10/50 倍并触发 10 次免费旋转。
+        "🔷": [9, 11, 13, 16, 0.22, 0.44, 0.88, 1.54],
+        "🟩": [9, 11, 13, 16, 0.24, 0.5, 0.94, 1.65],
+        "🔺": [9, 11, 13, 16, 0.28, 0.55, 1.1, 1.98],
+        "🟣": [9, 11, 13, 16, 0.33, 0.66, 1.32, 2.2],
+        "👑": [9, 11, 13, 16, 0.55, 1.1, 2.2, 4.4],
+        "💍": [9, 11, 13, 16, 0.66, 1.32, 2.64, 5.5],
+        "🧿": [9, 11, 13, 16, 0.88, 1.76, 3.52, 8.8],
+        "⚡": [4, 5, 6, 7, 1, 3, 10, 50]
       };
 
       const boardEl = document.getElementById("board");
@@ -370,6 +376,11 @@
         localStorage.setItem(KEYS.balance, String(v));
         balChip.textContent = v.toLocaleString();
       }
+      /* 余额低于最小下注额且没在旋转 → 非阻塞救济金提示（shared.js 的 MJ_UI） */
+      function reliefCheck(){
+        try { MJ_UI.relief({ balance: getBalance(), min: 10, idle: !spinning, refill: function (v) { setBalance(v); } }); } catch (e) {}
+      }
+      setInterval(reliefCheck, 1200);
       function setMsg(text, cls){
         msgEl.textContent = text;
         msgEl.className = "msg" + (cls ? " " + cls : "");
@@ -437,10 +448,10 @@
         const cfg = PAY[sym];
         if (!cfg) return 0;
         const [c1,c2,c3,c4,m1,m2,m3,m4] = cfg;
-        if (count >= c4) return Math.floor(stake * m4);
-        if (count >= c3) return Math.floor(stake * m3);
-        if (count >= c2) return Math.floor(stake * m2);
-        if (count >= c1) return Math.floor(stake * m1);
+        if (count >= c4) return Math.round(stake * m4);
+        if (count >= c3) return Math.round(stake * m3);
+        if (count >= c2) return Math.round(stake * m2);
+        if (count >= c1) return Math.round(stake * m1);
         return 0;
       }
 
@@ -510,7 +521,7 @@
           renderBoard(res.remove, new Map());
           await sleep(180);
 
-          const multCount = Math.random() < 0.55 ? 1 : (Math.random() < 0.35 ? 2 : 0);
+          const multCount = Math.random() < 0.25 ? 1 : (Math.random() < 0.2 ? 2 : 0);
           const multSet = new Map();
           for (let i = 0; i < multCount; i += 1){
             const pick = Math.floor(Math.random() * SIZE);

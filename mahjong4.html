@@ -3,20 +3,25 @@
   ══════════════════════════════════════════════════════════════
   index.html — 四人麻將（桌面版）
   玩家 vs 3 位 AI，台灣 16 張麻將規則
-  引用：styles.css / mahjong-core.js / game.js
+  引用：styles.css / mahjong-fx.css / mahjong-core.js / mahjong4.js / mahjong-fx.js
   ══════════════════════════════════════════════════════════════
 -->
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <!-- viewport-fit=cover：讓內容延伸至 iPhone 瀏海/圓角區域 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <!-- iOS PWA 支援：加至主螢幕後以全屏模式啟動 -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>🎮单机游戏(测试版)</title>
+  <title>🀄 四人麻將 · 單機版</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="mahjong-fx.css" />
+  <link rel="stylesheet" href="mahjong-sym4.css" />
   <style>
     /* ── 歡迎面板（doudizhu 風格）── */
     .mj4-welcome-panel {
@@ -127,12 +132,14 @@
     .mj4-sound-btn:hover { background: rgba(255,255,255,.14); }
 
   </style>
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="mj-modern.css" />
 </head>
 <body>
   <!-- ══ 背景音樂（bgm.mp3，loop 循環播放）══ -->
   <!-- 統一頂部導覽列 -->
   <!-- BGM -->
-  <audio id="bgm" loop preload="auto">
+  <audio id="bgm" loop preload="metadata">
     <source src="bgm.mp3" type="audio/mpeg">
   </audio>
 
@@ -797,6 +804,8 @@
   <!-- 使用一般 script 標籤（非 module），方便直接用瀏覽器開啟檔案 -->
   <script src="mahjong-core.js"></script>
   <script src="mahjong4.js"></script>
+  <script src="mahjong-fx.js"></script>
+  <script src="mahjong-sym4.js"></script>
 
 
   <!-- 創作者署名 -->

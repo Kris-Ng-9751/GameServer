@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>老虎机</title>
   <style>
@@ -282,6 +285,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
   <div class="wrap">
@@ -332,7 +336,8 @@
 
           <div class="payout">
             三个相同（每条横线）：🍀x8 · 🍋x10 · 🍉x12 · 🔔x18 · 💎x25 · 7️⃣x50<br/>
-            两个相同（每条横线）：返还该线下注 x1.2（总下注平均分到三条线）
+            两个相同（每条横线）：返还该线下注 x1.15（总下注平均分到三条线）<br/>
+            Jackpot：中间横线 7️⃣7️⃣7️⃣ 赢得「当前下注 × 奖池倍数」，奖池每局累加、中奖后重置；理论回报率约 96%
           </div>
         </div>
 
@@ -356,7 +361,7 @@
       avatar:'mj-player-avatar',
       balance:'mj-player-balance',
       slotWins:'slot-win-history',
-      slotJackpot:'slot-jackpot-pool'
+      slotJackpot:'slot-jackpot-units'
     };
     const DEFAULTS = { name:'玩家', avatar:'🀄', balance:10000 };
     const symbols = ['🍀','🍋','🍉','🔔','💎','7️⃣'];
@@ -374,7 +379,10 @@
     let autoSpinOn = false;
     let autoSpinTimer = null;
     const maxHistory = 12;
-    const jackpotBase = 50000;
+    // Jackpot 以「下注倍数」计价：中奖 = 当前下注 × 奖池倍数。
+    // 旧版是固定 5 万金额，对 10 元小注额的长期 RTP 高达 ~360%（每次中奖后庄家补 5 万底池），现改为与下注额无关。
+    const JP_SEED_UNITS = 20;   // 起始奖池 = 下注 × 20
+    const JP_RATE = 0.02;       // 每局累加 0.02 倍下注
 
     function getBalance(){
       const v = parseInt(localStorage.getItem(KEYS.balance) ?? DEFAULTS.balance, 10);
@@ -384,19 +392,26 @@
       localStorage.setItem(KEYS.balance, String(v));
       renderBalance();
     }
+    /* 余额低于最小下注额且没在旋转 → 非阻塞救济金提示（shared.js 的 MJ_UI） */
+    function reliefCheck(){
+      try { MJ_UI.relief({ balance: getBalance(), min: 10, idle: !spinning, refill: function (v) { setBalance(v); } }); } catch (e) {}
+    }
+    setInterval(reliefCheck, 1200);
     function renderBalance(){
       balEl.textContent = getBalance().toLocaleString();
     }
     function getJackpot(){
-      const v = parseInt(localStorage.getItem(KEYS.slotJackpot) ?? jackpotBase, 10);
-      return Number.isNaN(v) ? jackpotBase : v;
+      const v = parseFloat(localStorage.getItem(KEYS.slotJackpot));
+      return Number.isFinite(v) && v >= JP_SEED_UNITS ? v : JP_SEED_UNITS;
     }
+    function jackpotAmount(stake){ return Math.round(getJackpot() * stake); }
     function setJackpot(v){
-      localStorage.setItem(KEYS.slotJackpot, String(v));
+      localStorage.setItem(KEYS.slotJackpot, String(Math.round(v * 100) / 100));
       renderJackpot();
     }
     function renderJackpot(){
-      jackpotEl.textContent = getJackpot().toLocaleString();
+      let b = 10; try { b = bet; } catch (e) {}
+      jackpotEl.textContent = jackpotAmount(b).toLocaleString();
     }
     function loadProfile(){
       document.getElementById('name').textContent = localStorage.getItem(KEYS.name) || DEFAULTS.name;
@@ -459,15 +474,15 @@
       if (a === b && b === c){
         const table = { '🍀':8, '🍋':10, '🍉':12, '🔔':18, '💎':25, '7️⃣':50 };
         const mul = table[a] || 0;
-        return { win: Math.floor(stake * mul), hit:`三连 ${a}` };
+        return { win: Math.round(stake * mul), hit:`三连 ${a}` };
       }
       if (a === b || b === c || a === c){
-        return { win: Math.floor(stake * 1.2), hit:'两连' };
+        return { win: Math.round(stake * 1.15), hit:'两连' };
       }
       return { win: 0, hit:'' };
     }
     function evaluateGrid(grid, stake){
-      const lineStake = Math.max(1, Math.floor(stake / 3));
+      const lineStake = stake / 3;   // 不再向下取整：3 条线合计恰好等于总下注
       const rows = [0,1,2].map(r => [grid[r][0], grid[r][1], grid[r][2]]);
       let totalWin = 0;
       const hits = [];
@@ -483,7 +498,7 @@
       let jackpotWin = 0;
       // 中间横线 7️⃣7️⃣7️⃣ 触发 Jackpot
       if (rows[1][0] === '7️⃣' && rows[1][1] === '7️⃣' && rows[1][2] === '7️⃣'){
-        jackpotWin = getJackpot();
+        jackpotWin = jackpotAmount(stake);
       }
       if (totalWin > 0){
         const allWin = totalWin + jackpotWin;
@@ -556,7 +571,7 @@
       spinBtn.disabled = true;
       setBalance(bal - bet);
       // 每局抽取一部分注额进入 Jackpot 奖池
-      setJackpot(getJackpot() + Math.max(1, Math.floor(bet * 0.08)));
+      setJackpot(getJackpot() + JP_RATE);
       setMsg('转轴旋转中...', '');
 
       const timers = reelEls.map((el, idx) => {
@@ -583,7 +598,7 @@
               setMsg(r.text, 'win');
               addSpinRecord(result, bet, r.win, r.hits.join('/'), r.jackpotWin);
               if (r.jackpotWin > 0){
-                setJackpot(jackpotBase);
+                setJackpot(JP_SEED_UNITS);
               }
               triggerWinFlash(r.hitRows);
             } else {
@@ -603,6 +618,7 @@
       btn.addEventListener('click', () => {
         bet = +btn.dataset.bet;
         betBtns.forEach(b => b.classList.toggle('active', b === btn));
+        renderJackpot();
       });
     });
     spinBtn.addEventListener('click', startSpin);

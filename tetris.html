@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>俄罗斯方块</title>
   <style>
@@ -217,6 +220,7 @@
       .center{ order:-1; }
     }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
   <div class="wrap">
@@ -463,6 +467,15 @@
     let bag = [];
     let canHold = true;
     let dropCounter = 0;
+    // 锁定延迟：方块触地后 500ms 内仍可左右滑动/旋转；每块最多 15 次重置，防止无限拖延
+    const LOCK_DELAY_MS = 500, MAX_LOCK_RESETS = 15;
+    let lockTimer = 0, lockResets = 0;
+    function isGrounded(){
+      current.y++; const g = collide(arena, current); current.y--; return g;
+    }
+    function bumpLock(){
+      if (current && lockResets < MAX_LOCK_RESETS && isGrounded()){ lockTimer = 0; lockResets++; }
+    }
     let dropInterval = 1000; // ms
     let lastTime = 0;
     let animationFrameId = null;
@@ -962,6 +975,7 @@
       current = createPieceByName(nextQueue.shift());
       ensureNextQueue();
       canHold = true;
+      lockTimer = 0; lockResets = 0;
       current.x = Math.floor((COLS - current.matrix[0].length)/2);
       current.y = -Math.max(0, current.matrix.length - 2);
       if (collide(arena, current)){
@@ -1003,6 +1017,8 @@
       current.x += dir;
       if (collide(arena, current)){
         current.x -= dir;
+      } else {
+        bumpLock();
       }
     }
 
@@ -1081,21 +1097,23 @@
       current.matrix = newMatrix;
       current.rotation = nextRot;
 
-      // wall kick simple implementation: try offsets
-      const kicks = [0, -1, 1, -2, 2];
+      // 踢墙/踢地：先左右，再向上抬 1~2 格（贴地或被堆叠卡住时也能旋转）
+      const kicks = [[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1],[-1,-1],[1,-1],[0,-2],[-1,-2],[1,-2]];
       let ok = false;
-      for (let k of kicks){
-        current.x += k;
+      for (const [kx, ky] of kicks){
+        current.x += kx; current.y += ky;
         if (!collide(arena, current)){
           ok = true;
           break;
         }
-        current.x -= k;
+        current.x -= kx; current.y -= ky;
       }
       if (!ok){
         // revert
         current.matrix = oldMatrix;
         current.rotation = oldRot;
+      } else {
+        bumpLock();
       }
     }
 
@@ -1292,8 +1310,15 @@
         dropCounter += dt;
         if (dropCounter > dropInterval){
           dropCounter = 0;
-          if (!softDrop()){
-            // if softDrop returned true it already locked
+          current.y++;
+          if (collide(arena, current)) current.y--;      // 触地：由下面的锁定延迟处理
+        }
+        if (current && !gameOver){
+          if (isGrounded()){
+            lockTimer += dt;
+            if (lockTimer >= LOCK_DELAY_MS){ lockTimer = 0; lockPiece(); }
+          } else {
+            lockTimer = 0;
           }
         }
         draw();

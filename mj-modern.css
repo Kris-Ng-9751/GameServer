@@ -1,0 +1,327 @@
+/* ══════════════════════════════════════════════════════════════════
+   mj-modern.css — 麻將「現代簡潔」視覺系統（三人 / 四人 / 手機橫屏共用）
+   載入順序：styles.css → mahjong-fx.css → mahjong-sym4.css（僅四人）→ 本檔
+   原則：只改視覺（色彩 / 圓角 / 陰影 / 字體 / 元件樣式），不改 DOM、id、版面尺寸與遊戲規則。
+   設計語言：中性石墨底 + 單一暖金強調 + 平整墨綠牌桌；去除漸變、雜訊與多層發光。
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 表面 */
+  --m-bg:        #0d1013;
+  --m-surface:   #151a1f;
+  --m-surface-2: #1c2228;
+  --m-line:      rgba(255, 255, 255, 0.08);
+  --m-line-2:    rgba(255, 255, 255, 0.14);
+  /* 文字 */
+  --m-text:      #eef1f3;
+  --m-text-2:    #9aa5ad;
+  --m-text-3:    #66727b;
+  /* 強調（只用一個暖金）與語義色 */
+  --m-accent:    #e9b949;
+  --m-accent-ink:#2a1d00;
+  --m-ok:        #3fb68b;
+  --m-danger:    #e5625e;
+  --m-info:      #5aa9e6;
+  /* 牌桌 */
+  --m-felt:      #1a3d34;
+  --m-felt-deep: #153229;
+  --m-felt-rim:  #0f241d;
+  /* 牌 */
+  --m-tile:      #f7f4ec;
+  --m-tile-edge: #d9d2c0;
+  --m-tile-side: #c9c1ac;
+  --m-tile-back: #2c6f8e;
+  --m-tile-back-2:#245d78;
+  /* 形狀 */
+  --m-r-sm: 8px;
+  --m-r-md: 12px;
+  --m-r-lg: 18px;
+  --m-font: "Inter", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+
+  /* 把舊令牌映射到新系統，讓 styles.css 裡所有引用它們的地方自動換色 */
+  --bg: var(--m-bg);
+  --bg-dark: var(--m-bg);
+  --accent: var(--m-accent);
+  --accent-soft: rgba(233, 185, 73, 0.14);
+  --tile-bg: var(--m-tile);
+  --tile-border: var(--m-tile-edge);
+  --danger: var(--m-danger);
+  --text-main: var(--m-text);
+  --text-sub: var(--m-text-2);
+  --radius-lg: var(--m-r-lg);
+  --radius-md: var(--m-r-md);
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-tile: 0 1px 0 var(--m-tile-side), 0 3px 4px rgba(0, 0, 0, 0.28);
+}
+
+/* ── 基底 ───────────────────────────────────────────── */
+html, body { background: var(--m-bg) !important; color: var(--m-text); }
+body {
+  font-family: var(--m-font) !important;
+  background-image: radial-gradient(900px 500px at 50% -10%, rgba(233, 185, 73, 0.05), transparent 70%) !important;
+  letter-spacing: 0.01em;
+}
+.footer-credit, .credit, body > .created-by { color: var(--m-text-3) !important; }
+
+/* ── 頂部工具列 ──────────────────────────────────────── */
+.top-bar {
+  background: rgba(13, 16, 19, 0.82) !important;
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--m-line);
+  box-shadow: none !important;
+}
+.top-bar-center { color: var(--m-text); }
+.top-bar-center * { color: inherit; }
+.top-bar-center > :nth-child(2), .top-bar-center small { color: var(--m-text-3) !important; }
+.dealer-info {
+  background: rgba(233, 185, 73, 0.12) !important; color: var(--m-accent) !important;
+  border: 1px solid rgba(233, 185, 73, 0.28); font-weight: 600;
+}
+.round-info { color: var(--m-text-2) !important; }
+.game-menu-btn, .bgm-btn, .btn-show-win {
+  background: transparent !important; color: var(--m-text-2) !important;
+  border: 1px solid var(--m-line-2) !important; border-radius: 999px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.game-menu-btn:hover, .bgm-btn:hover, .btn-show-win:hover {
+  background: rgba(255, 255, 255, 0.06) !important; color: var(--m-text) !important;
+}
+.game-menu-dropdown {
+  background: var(--m-surface-2) !important; border: 1px solid var(--m-line-2) !important;
+  border-radius: var(--m-r-md) !important; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important; overflow: hidden;
+}
+.game-menu-item { color: var(--m-text) !important; background: transparent !important; }
+.game-menu-item:hover { background: rgba(255, 255, 255, 0.06) !important; }
+.game-menu-divider { background: var(--m-line) !important; }
+input[type="range"].bgm-volume { accent-color: var(--m-accent); }
+
+/* ── 牌桌 ───────────────────────────────────────────── */
+.table {
+  background: var(--m-felt) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px !important;
+  box-shadow: inset 0 0 0 6px var(--m-felt-rim), inset 0 0 80px rgba(0, 0, 0, 0.28), 0 24px 60px rgba(0, 0, 0, 0.45) !important;
+}
+.discard-center {
+  background: var(--m-felt-deep) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--m-r-md) !important;
+}
+
+/* ── 牌 ─────────────────────────────────────────────── */
+.tile:not(.back) {
+  background: var(--m-tile) !important;
+  border: 1px solid var(--m-tile-edge) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 0 #fff inset, 0 2px 0 var(--m-tile-side), 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+.tile.back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 3px, transparent 3px 6px),
+    var(--m-tile-back) !important;
+  border: 1px solid var(--m-tile-back-2) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 0 #1a475c, 0 3px 5px rgba(0, 0, 0, 0.3) !important;
+}
+/* 最新棄牌：細金色描邊（取代原本的發光呼吸） */
+.tile.active-discard {
+  outline: 2px solid var(--m-accent) !important; outline-offset: 1px; animation: none !important;
+  box-shadow: 0 2px 0 var(--m-tile-side), 0 0 0 4px rgba(233, 185, 73, 0.18) !important;
+}
+.tile.win-ready { box-shadow: 0 0 0 2px var(--m-ok), 0 3px 6px rgba(0, 0, 0, 0.35) !important; }
+.tile.recommend-tile { animation: none !important; box-shadow: 0 0 0 2px var(--m-info), 0 3px 6px rgba(0, 0, 0, 0.35) !important; }
+.tile.kbd-selected { box-shadow: 0 0 0 2px var(--m-accent), 0 3px 6px rgba(0, 0, 0, 0.35) !important; }
+.hand-player .tile:hover { translate: 0 -8px; filter: none; }
+
+/* ── 玩家資訊 ───────────────────────────────────────── */
+.seat-label { color: var(--m-text-2) !important; }
+.seat-label .game-avatar, .game-avatar {
+  background: var(--m-surface-2) !important; border: 1px solid var(--m-line-2) !important; box-shadow: none !important;
+}
+.seat-score {
+  color: var(--m-text) !important; background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--m-line) !important; font-variant-numeric: tabular-nums;
+}
+.dealer-badge {
+  background: var(--m-accent) !important; color: var(--m-accent-ink) !important;
+  box-shadow: none !important; font-weight: 700;
+}
+.dc-cell > .seat-label, .seat-label {
+  /* 名牌改為半透明膠囊底，疊在牌桌上也清晰 */
+}
+.dc-cell > .seat-label {
+  background: rgba(13, 16, 19, 0.55); border: 1px solid var(--m-line); border-radius: 999px; padding: 3px 10px;
+}
+
+/* ── 中央羅盤（回合指示）────────────────────────────── */
+.turn-compass, #turn-compass {
+  background: rgba(13, 16, 19, 0.5) !important; border: 1px solid var(--m-line-2) !important; box-shadow: none !important;
+}
+.tc-arrow.tc-active { color: var(--m-accent) !important; text-shadow: none !important; animation: none !important; }
+.tc-wall-count, .tc-center-num { color: var(--m-text) !important; text-shadow: none !important; }
+
+/* ── 按鈕 ───────────────────────────────────────────── */
+.btn {
+  background: rgba(255, 255, 255, 0.08) !important; color: var(--m-text) !important;
+  border: 1px solid var(--m-line-2) !important; border-radius: 10px !important; font-weight: 600;
+  box-shadow: none !important; transition: background 0.15s, transform 0.1s;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.13) !important; }
+.btn:active { transform: scale(0.97); }
+.btn.primary, .btn-win-action, .mj4-btn-start {
+  background: var(--m-accent) !important; color: var(--m-accent-ink) !important;
+  border: none !important; font-weight: 700; box-shadow: none !important; animation: none !important;
+}
+.btn.primary:hover, .mj4-btn-start:hover { background: #f1c45e !important; filter: none; transform: none; }
+
+/* 行動按鈕：圓形 → 圓角矩形，色彩語義化（一眼分辨） */
+.btn-action {
+  border-radius: 12px !important; border: 1px solid transparent !important; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important; letter-spacing: 0.04em;
+  color: #fff !important; background: #3a444d !important; filter: none !important;
+}
+.btn-action:hover { filter: brightness(1.12) !important; transform: translateY(-1px); }
+.btn-action:active { transform: scale(0.95); }
+#btn-chi, #btn-peng, #btn-gang { background: #b9791f !important; }
+#btn-win { background: var(--m-danger) !important; }
+#btn-pass { background: #4a5660 !important; }
+#btn-tenpai { background: #2f7f8f !important; }
+#btn-recommend, #btn-swap-fei, #btn-draw { background: #7a62c9 !important; }
+#btn-win { animation: none !important; }
+
+/* ── 浮層與面板（統一：深色卡片、細描邊、柔陰影）──── */
+.dice-overlay, .chi-select-overlay, .win-overlay, .tile-ref-overlay, .avatar-picker, .name-input-overlay {
+  background: rgba(8, 10, 12, 0.72) !important; backdrop-filter: blur(6px);
+}
+.dice-panel, .chi-select-panel, .win-panel, .tile-ref-panel, .tutorial-panel, .name-input-panel {
+  background: var(--m-surface) !important; color: var(--m-text);
+  border: 1px solid var(--m-line-2) !important; border-radius: var(--m-r-lg) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55) !important;
+}
+.dice-title, .chi-select-title, .tile-ref-title, .mj4-welcome-title { color: var(--m-text) !important; text-shadow: none !important; letter-spacing: 0.04em; }
+.dice-subtitle, .rate-label, .mj4-welcome-subtitle, .dice-result-text { color: var(--m-text-2) !important; }
+.dice-result-text b, .dice-result-text strong { color: var(--m-accent) !important; }
+.btn-dice-exit, .btn-win-dismiss, .tenpai-close-btn {
+  background: transparent !important; border: 1px solid var(--m-line-2) !important; color: var(--m-text-2) !important; border-radius: 999px !important;
+}
+.rate-btn, .diff-btn {
+  background: transparent !important; color: var(--m-text-2) !important;
+  border: 1px solid var(--m-line-2) !important; border-radius: 10px !important; box-shadow: none !important; font-weight: 600;
+}
+.rate-btn:hover, .diff-btn:hover { background: rgba(255, 255, 255, 0.06) !important; color: var(--m-text) !important; }
+.rate-btn.active, .diff-btn.diff-btn-active {
+  background: rgba(233, 185, 73, 0.14) !important; color: var(--m-accent) !important; border-color: rgba(233, 185, 73, 0.55) !important;
+}
+.dice-display .die, .dice-display > * { filter: none; }
+
+/* ── 結算面板 ───────────────────────────────────────── */
+.win-title { color: var(--m-accent) !important; text-shadow: none !important; letter-spacing: 0.12em; animation: none !important; }
+.win-player-name { color: var(--m-text) !important; }
+.win-type { color: var(--m-text-2) !important; }
+.win-score { color: var(--m-text) !important; }
+.win-all-hands { background: transparent !important; }
+.bankrupt-notice { background: rgba(229, 98, 94, 0.12) !important; border: 1px solid rgba(229, 98, 94, 0.4) !important; color: #ffb4b1 !important; border-radius: var(--m-r-sm); }
+
+/* ── 首頁（歡迎面板、個人資料、選單）───────────────── */
+.home-screen { background: var(--m-bg) !important; background-image: radial-gradient(700px 420px at 50% 0%, rgba(233, 185, 73, 0.07), transparent 70%) !important; }
+.mj4-welcome-panel {
+  background: var(--m-surface) !important; border: 1px solid var(--m-line-2) !important;
+  border-radius: 22px !important; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5) !important;
+}
+.mj4-welcome-rules {
+  background: var(--m-surface-2) !important; border: 1px solid var(--m-line) !important; border-radius: var(--m-r-md) !important; color: var(--m-text-2) !important;
+}
+.mj4-welcome-rules * { color: inherit; }
+.mj4-menu-btn, .mj4-sound-btn {
+  background: transparent !important; color: var(--m-text-2) !important; border: 1px solid var(--m-line-2) !important; border-radius: 10px !important; box-shadow: none !important;
+}
+.mj4-menu-btn:hover, .mj4-sound-btn:hover { background: rgba(255, 255, 255, 0.06) !important; color: var(--m-text) !important; }
+.mj4-back-link { color: var(--m-text-3) !important; }
+.player-profile-card {
+  background: var(--m-surface) !important; border: 1px solid var(--m-line-2) !important; border-radius: var(--m-r-lg) !important; box-shadow: none !important;
+}
+.profile-avatar { background: var(--m-surface-2) !important; border: 1px solid var(--m-line-2) !important; box-shadow: none !important; }
+.profile-name { color: var(--m-text) !important; }
+.profile-balance, .profile-balance-info { color: var(--m-accent) !important; }
+.btn-reset-balance { background: transparent !important; border: 1px solid var(--m-line-2) !important; color: var(--m-text-2) !important; }
+.avatar-opt { background: var(--m-surface-2) !important; border: 1px solid var(--m-line) !important; border-radius: var(--m-r-md) !important; }
+.avatar-opt:hover { border-color: var(--m-accent) !important; }
+
+/* ── 教學 / 牌型說明 ────────────────────────────────── */
+.tutorial-tab { background: transparent !important; color: var(--m-text-2) !important; border: 1px solid var(--m-line) !important; border-radius: 999px !important; }
+.tutorial-tab.active { background: rgba(233, 185, 73, 0.14) !important; color: var(--m-accent) !important; border-color: rgba(233, 185, 73, 0.5) !important; }
+.tut-section { background: var(--m-surface-2) !important; border: 1px solid var(--m-line) !important; border-radius: var(--m-r-md) !important; }
+.tut-section-title { color: var(--m-text) !important; }
+.tut-desc, .tut-list { color: var(--m-text-2) !important; }
+
+/* ── 訊息面板 ───────────────────────────────────────── */
+.log-panel {
+  background: rgba(21, 26, 31, 0.9) !important; border: 1px solid var(--m-line-2) !important;
+  border-radius: var(--m-r-md) !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important; backdrop-filter: blur(10px);
+}
+.log-header { background: transparent !important; color: var(--m-text-3) !important; border-bottom: 1px solid var(--m-line); letter-spacing: 0.08em; }
+.log { color: var(--m-text-2); }
+.log > * { border-left-color: var(--m-line-2) !important; }
+
+/* ── 捲軸 ───────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+
+/* ── 減少動態 ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .btn-action:hover { transform: none; }
+}
+
+/* ══ 手機橫屏版（mobile.html）：它自帶 body.is-mobile + !important 的樣式，這裡以同等優先級覆蓋 ══ */
+body.is-mobile { background: var(--m-bg) !important; font-family: var(--m-font) !important; }
+body.is-mobile .home-screen {
+  background: var(--m-bg) !important;
+  background-image: radial-gradient(520px 320px at 22% 0%, rgba(233, 185, 73, 0.07), transparent 70%) !important;
+}
+body.is-mobile .mobile-home-left { background: transparent !important; border-right: 1px solid var(--m-line) !important; }
+body.is-mobile .mobile-logo-title { color: var(--m-text) !important; text-shadow: none !important; background: none !important; -webkit-text-fill-color: var(--m-text) !important; letter-spacing: 0.1em; }
+body.is-mobile .mobile-logo-sub, body.is-mobile .mobile-hint, body.is-mobile .difficulty-label { color: var(--m-text-3) !important; }
+body.is-mobile .mobile-logo-deco { opacity: 0.55; filter: grayscale(0.6); }
+body.is-mobile .player-profile-card {
+  background: var(--m-surface) !important; border: 1px solid var(--m-line-2) !important; border-radius: var(--m-r-md) !important; box-shadow: none !important;
+}
+body.is-mobile .profile-avatar-wrap { background: var(--m-surface-2) !important; border: 1px solid var(--m-line-2) !important; }
+body.is-mobile .profile-avatar-edit { background: var(--m-accent) !important; color: var(--m-accent-ink) !important; }
+body.is-mobile .profile-name { color: var(--m-text) !important; }
+body.is-mobile .profile-name:hover, body.is-mobile .profile-name-edit-btn, body.is-mobile .profile-balance-val { color: var(--m-accent) !important; }
+body.is-mobile #btn-start-game, body.is-mobile .name-confirm-btn {
+  background: var(--m-accent) !important; color: var(--m-accent-ink) !important; box-shadow: none !important; border: none !important;
+  border-radius: 12px !important; letter-spacing: 0.1em;
+}
+body.is-mobile #btn-start-game:active, body.is-mobile .name-confirm-btn:active { background: #f1c45e !important; box-shadow: none !important; }
+body.is-mobile .diff-btn { border-radius: 10px !important; }
+body.is-mobile .mobile-home-right { background: transparent !important; }
+body.is-mobile .mobile-coming-soon {
+  background: var(--m-surface) !important; border: 1px solid var(--m-line) !important; border-radius: var(--m-r-md) !important; box-shadow: none !important;
+}
+body.is-mobile .mobile-coming-title { color: var(--m-text-2) !important; }
+body.is-mobile .mobile-coming-sub { color: var(--m-text-3) !important; }
+body.is-mobile .mobile-coming-badge { background: transparent !important; border: 1px solid var(--m-line-2) !important; color: var(--m-text-3) !important; }
+body.is-mobile .mobile-tool-btn {
+  background: var(--m-surface) !important; border: 1px solid var(--m-line) !important; border-radius: var(--m-r-md) !important; color: var(--m-text-2) !important;
+}
+body.is-mobile .mobile-tool-btn:active { background: rgba(233, 185, 73, 0.1) !important; border-color: rgba(233, 185, 73, 0.35) !important; color: var(--m-accent) !important; }
+body.is-mobile .game-menu-btn { background: var(--m-surface) !important; border: 1px solid var(--m-line-2) !important; color: var(--m-text-2) !important; border-radius: 10px !important; }
+body.is-mobile .game-menu-btn:active { background: rgba(255, 255, 255, 0.08) !important; }
+body.is-mobile .game-menu-item--new { color: var(--m-accent) !important; }
+body.is-mobile .game-menu-item:active, body.is-mobile .game-menu-item--new:active { background: rgba(255, 255, 255, 0.06) !important; }
+.rotate-phone-wrap { background: rgba(233, 185, 73, 0.08) !important; border-color: rgba(233, 185, 73, 0.3) !important; }
+.rotate-title { color: var(--m-accent) !important; }
+
+/* ══ 修正：玩家手牌最右一張（剛摸的牌）被東家座位層蓋住而點不到（原版就有此問題，手機版尤其明顯）══
+      東 / 西座位只展示對手牌背，不需要接收點擊；把南家（玩家）座位層抬到最上層即可 */
+.seat-south { position: relative; z-index: 6; }
+
+/* ══ 窄視窗：訊息面板不再壓住行動按鈕 ══
+      ≤1180px 時移到右上角（頂欄下方），預設折成標題條；滑過 / 點按時展開 */
+@media (max-width: 1180px) {
+  .log-panel-float {
+    top: 52px !important; bottom: auto !important; right: 10px !important;
+    width: 190px; max-height: 30px; transition: max-height 0.2s ease;
+  }
+  .log-panel-float:hover, .log-panel-float:focus-within, .log-panel-float:active { max-height: 220px; }
+}

@@ -1,0 +1,73 @@
+/* mahjong-fx.css — 视觉增强层（放在 styles.css 之后加载，只覆盖观感，不改布局） */
+:root{
+  --fx-felt-1:#1f7a52; --fx-felt-2:#0e4a32; --fx-felt-3:#07281c;
+  --fx-gold:#f6c847; --fx-ease:cubic-bezier(.2,.9,.3,1.2);
+}
+/* 牌桌：深绿毛毡 + 暗角 + 细噪点 */
+.table{
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 50% 40%, var(--fx-felt-1), var(--fx-felt-2) 60%, var(--fx-felt-3)) !important;
+  box-shadow: inset 0 0 0 2px rgba(246,200,71,.25), inset 0 0 60px rgba(0,0,0,.5), 0 18px 50px rgba(0,0,0,.55);
+  border-radius: 18px;
+}
+/* 牌：立体厚度 + 柔和高光（不改各花色底色） */
+.tile:not(.back){
+  box-shadow: 0 1px 0 #fff inset, 0 -2px 0 rgba(0,0,0,.12) inset,
+              0 2px 0 #c9bfa6, 0 3px 0 #a79d84, 0 5px 8px rgba(0,0,0,.45);
+}
+.tile.back{
+  background: repeating-linear-gradient(45deg,#1d6b8f 0 4px,#185a79 4px 8px) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.35) inset, 0 2px 0 #0f3d52, 0 3px 0 #0b2e3e, 0 4px 6px rgba(0,0,0,.45);
+}
+/* 玩家手牌：悬停上浮（用独立 translate 属性，不与原有 transform 冲突） */
+.hand-player .tile{ transition: translate .14s var(--fx-ease), filter .14s, box-shadow .14s; cursor:pointer; }
+.hand-player .tile:hover{ translate: 0 -10px; filter: brightness(1.06); }
+.hand-player .tile.kbd-selected,.hand-player .tile.drag-over{ translate: 0 -12px; }
+.hand-player .tile.dragging{ opacity:.55; }
+.tile.recommend-tile{ animation: fx-rec 1.2s ease-in-out infinite; }
+.tile.win-ready{ box-shadow: 0 0 0 2px var(--fx-gold), 0 0 14px rgba(246,200,71,.8), 0 4px 8px rgba(0,0,0,.5) !important; }
+@keyframes fx-rec{ 50%{ filter: drop-shadow(0 0 8px #7dffb0) brightness(1.1);} }
+
+/* 出牌落下 + 最新弃牌光环 */
+.fx-drop{ animation: fx-drop .32s var(--fx-ease) both; }
+.fx-draw{ animation: fx-draw .28s var(--fx-ease) both; }
+@keyframes fx-drop{ 0%{ transform: translateY(-34px) scale(1.25) rotate(-6deg); opacity:0; } 100%{ transform:none; opacity:1; } }
+@keyframes fx-draw{ 0%{ transform: translateY(18px); opacity:0; } 100%{ transform:none; opacity:1; } }
+.tile.active-discard{ outline: 2px solid var(--fx-gold); outline-offset: 1px; animation: fx-pulse 1.4s ease-in-out infinite; }
+@keyframes fx-pulse{ 50%{ box-shadow: 0 0 14px 3px rgba(246,200,71,.75), 0 4px 8px rgba(0,0,0,.45);} }
+
+/* 当前回合指示 */
+.tc-arrow.tc-active{ color: var(--fx-gold); text-shadow: 0 0 10px var(--fx-gold); animation: fx-blink 1s ease-in-out infinite; }
+@keyframes fx-blink{ 50%{ opacity:.45; transform: scale(1.12);} }
+.tc-wall-count{ font-variant-numeric: tabular-nums; }
+.seat-label{ backdrop-filter: blur(4px); background: rgba(0,0,0,.28); border-radius: 999px; padding: 2px 12px; }
+.dealer-badge{ background: linear-gradient(135deg,#f6c847,#d9962b) !important; color:#3a2300 !important; font-weight:800; box-shadow:0 0 8px rgba(246,200,71,.6); }
+
+/* 吃碰槓胡 大字特效 */
+.action-overlay[data-action] .action-text{ animation: fx-action 1.1s var(--fx-ease) both; font-weight:900; letter-spacing:.15em; }
+.action-overlay[data-action="碰"] .action-text{ color:#ffd24a; text-shadow:0 0 30px #ff9d00,0 4px 0 #8a4b00; }
+.action-overlay[data-action="吃"] .action-text{ color:#7fe3ff; text-shadow:0 0 30px #1aa6ff,0 4px 0 #0a4a78; }
+.action-overlay[data-action="槓"] .action-text{ color:#c6a7ff; text-shadow:0 0 30px #8a4bff,0 4px 0 #3b1a80; }
+.action-overlay[data-action="胡"] .action-text{ color:#ff6b6b; text-shadow:0 0 40px #ff2d2d,0 4px 0 #7a0a0a; font-size:1.25em; }
+@keyframes fx-action{ 0%{ transform: scale(.3) rotate(-8deg); opacity:0; } 35%{ transform: scale(1.25) rotate(2deg); opacity:1; } 100%{ transform: scale(1); opacity:1; } }
+.fx-flash{ position:fixed; inset:0; pointer-events:none; z-index:9998; background: radial-gradient(circle,rgba(255,255,255,.55),transparent 65%); animation: fx-flash .45s ease-out forwards; }
+@keyframes fx-flash{ from{opacity:1} to{opacity:0} }
+.fx-shake{ animation: fx-shake .4s linear; }
+@keyframes fx-shake{ 20%{transform:translate(-4px,2px)} 40%{transform:translate(4px,-2px)} 60%{transform:translate(-3px,-1px)} 80%{transform:translate(3px,1px)} }
+
+/* 结算面板入场 + 五彩纸屑画布 */
+.win-overlay:not(.hidden) .win-panel{ animation: fx-pop .5s var(--fx-ease) both; }
+@keyframes fx-pop{ from{ transform: translateY(30px) scale(.9); opacity:0; } to{ transform:none; opacity:1; } }
+#fx-confetti{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10000; }
+.btn-action{ transition: transform .12s, box-shadow .15s, filter .15s; }
+.btn-action:hover{ transform: translateY(-2px); filter: brightness(1.1); }
+.btn-action:active{ transform: scale(.94); }
+.btn-win-action:not(.hidden){ animation: fx-pulse 1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce){
+  .fx-drop,.fx-draw,.fx-flash,.fx-shake,.tile.active-discard,.tile.recommend-tile,.tc-arrow.tc-active,.win-overlay .win-panel,
+  .action-overlay[data-action] .action-text,.btn-win-action{ animation:none !important; }
+  #fx-confetti{ display:none; }
+}

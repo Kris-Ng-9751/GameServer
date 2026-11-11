@@ -5,9 +5,12 @@
   四人、108张牌、匹配颜色或数字/符号，先出完者胜
   ══════════════════════════════════════════════════════════════
 -->
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
   <meta charset="UTF-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>UNO — 单机版</title>
@@ -316,6 +319,7 @@
       .uno-card { width: 32px; height: 44px; }
     }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
 
@@ -583,14 +587,10 @@ function playCard(playerIdx, card, wildColor) {
 
   if (card.type === 'reverse') G.direction = -G.direction;
   if (card.type === 'skip') nextPlayer();
-  if (card.type === 'draw2') {
-    G.drawStack = (G.drawStack || 0) + 2;
-    nextPlayer();
-  }
-  if (card.type === 'wild4') {
-    G.drawStack = (G.drawStack || 0) + 4;
-    nextPlayer();
-  }
+  // +2 / +4：只累加罚牌堆，轮到「下家」时由其叠加或摸牌（摸牌后再跳过）。
+  // 旧版这里多调用了一次 nextPlayer()，导致罚牌落在隔位玩家身上、真正的下家被白白跳过。
+  if (card.type === 'draw2') G.drawStack = (G.drawStack || 0) + 2;
+  if (card.type === 'wild4') G.drawStack = (G.drawStack || 0) + 4;
 
   G.currentPlayerIdx = nextPlayer();
   return true;

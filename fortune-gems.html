@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
+  <meta name="theme-color" content="#0b1a22" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E" />
+  <script src="shared.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>連線寶石</title>
   <style>
@@ -177,6 +180,7 @@
       .grid{min-height:320px}
     }
   </style>
+  <link rel="stylesheet" href="shared.css" />
 </head>
 <body>
   <div class="wrap">
@@ -244,7 +248,8 @@
       const SIZE = ROWS * COLS;
       const WILD = "W";
       const SYMBOLS = ["A", "K", "Q", "J", "🟥", "🟦", "🟩"];
-      const PAY = { W: 25, "🟥": 20, "🟦": 15, "🟩": 12, A: 10, K: 8, Q: 5, J: 2 };
+      // 赔率表已按 RTP≈96% 校准（原表 RTP≈1030%：平均每押 10 元返还 100 多元）。
+      const PAY = { W: 2.35, "🟥": 1.9, "🟦": 1.43, "🟩": 1.12, A: 0.92, K: 0.72, Q: 0.46, J: 0.19 };
       const PAYLINES = [
         [0, 1, 2],   // top
         [4, 5, 6],   // middle
@@ -290,6 +295,11 @@
         localStorage.setItem(KEYS.balance, String(v));
         balChip.textContent = v.toLocaleString();
       }
+      /* 余额低于最小下注额且没在旋转 → 非阻塞救济金提示（shared.js 的 MJ_UI） */
+      function reliefCheck(){
+        try { MJ_UI.relief({ balance: getBalance(), min: 10, idle: !spinning, refill: function (v) { setBalance(v); } }); } catch (e) {}
+      }
+      setInterval(reliefCheck, 1200);
       function setMsg(text, cls){
         msgEl.textContent = text;
         msgEl.className = "msg" + (cls ? " " + cls : "");
@@ -394,14 +404,14 @@
         const arr = [symA, symB, symC];
         const nonWild = arr.filter(s => s !== WILD);
         if (nonWild.length === 0){
-          return { ok: true, symbol: WILD, win: Math.floor(stake * PAY.W), hitSymbol: "WILD" };
+          return { ok: true, symbol: WILD, win: Math.round(stake * PAY.W), hitSymbol: "WILD" };
         }
         const target = nonWild[0];
         if (nonWild.some(s => s !== target)){
           return { ok: false, symbol: "", win: 0, hitSymbol: "" };
         }
         const pay = PAY[target] || 0;
-        return { ok: true, symbol: target, win: Math.floor(stake * pay), hitSymbol: target };
+        return { ok: true, symbol: target, win: Math.round(stake * pay), hitSymbol: target };
       }
 
       function evaluateSpin(curBoard, baseStake){
