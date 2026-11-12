@@ -9,8 +9,8 @@
   /* ── 1) 尺寸：全部由屏幕高度推出，牌面图案同比缩放 ── */
   :root {
     --H: calc(100vh - 34px);
-    --pw: min(calc(var(--H) * 0.15), calc((100vw - 110px) / 16), 58px);
-    --ph: calc(var(--pw) * 1.36);
+    --pw: min(calc(var(--H) * 0.175), calc((100vw - 120px) / 15.4), 62px);
+    --ph: calc(var(--pw) * 1.38);
     --dw: calc(var(--H) * 0.062);   --dh: calc(var(--dw) * 1.34);
     --sw: calc(var(--H) * 0.042);   --sh: calc(var(--sw) * 1.4);
     --mw: calc(var(--H) * 0.046);   --mh: calc(var(--mw) * 1.34);
@@ -63,14 +63,14 @@
   .discard-center .discard-row {
     position: absolute !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-content: flex-start !important;
     gap: 1px !important; overflow: visible !important; min-height: 0 !important; z-index: 2;
-    box-sizing: content-box !important; padding: 3px !important; border-radius: 9px !important;
-    background: rgba(0, 30, 22, 0.16) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    box-sizing: content-box !important; padding: 0 !important; border-radius: 0 !important;
+    background: none !important; box-shadow: none !important;
     width: calc(10 * (var(--dw) + 1px)) !important; height: calc(2 * (var(--dh) + 1px)) !important; transform: none !important;
   }
-  .discard-center .dc-north .discard-row-h { top: calc(var(--H) * 0.17); left: calc(50% - 5 * (var(--dw) + 1px) - 3px); }
-  .discard-center .south-discard-row { bottom: calc(var(--ph) + 16px); left: calc(50% - 5 * (var(--dw) + 1px) - 3px); }
-  .discard-center .dc-west .discard-row-v { left: 76px; top: calc(var(--H) * 0.37); right: auto; }
-  .discard-center .dc-east .discard-row-v { right: 76px; left: auto; top: calc(var(--H) * 0.37); }
+  .discard-center .dc-north .discard-row-h { top: calc(var(--H) * 0.20); left: calc(50% - 5 * (var(--dw) + 1px)); }
+  .discard-center .south-discard-row { bottom: calc(var(--ph) + 14px); right: calc(50% + var(--H) * 0.1 + 10px); left: auto; }
+  .discard-center .dc-west .discard-row-v { left: calc(var(--H) * 0.3); top: calc(var(--H) * 0.30); right: auto; }
+  .discard-center .dc-east .discard-row-v { right: calc(var(--H) * 0.3); left: auto; top: calc(var(--H) * 0.40); }
   .discard-center .tile.discarded { width: var(--dw) !important; height: var(--dh) !important; margin: 0 !important; border-radius: 3px; transform: none !important; place-self: auto; }
   .discard-center .tile.discarded.active-discard { outline: 2px solid #ffd24a; outline-offset: 0; z-index: 3; box-shadow: 0 0 10px 2px rgba(255, 210, 74, .85) !important; animation: none !important; }
   .discard-center .tile.discarded .tile-corner { display: none !important; }
@@ -90,12 +90,12 @@
 
   /* 中央信息盘：牌山余量 + 四方向指示（轮到谁就亮谁） */
   .turn-compass, #turn-compass {
-    position: absolute !important; left: calc(50% - 56px); top: calc(var(--H) * 0.385); width: 112px !important; height: calc(var(--H) * 0.14) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 12px !important;
-    background: linear-gradient(180deg, #0d2c26, #081c18) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 3px 8px rgba(0,0,0,.4) !important;
+    position: absolute !important; left: calc(50% - var(--H) * 0.1); top: calc(var(--H) * 0.4); width: calc(var(--H) * 0.2) !important; height: calc(var(--H) * 0.2) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 50% !important;
+    background: radial-gradient(circle at 50% 40%, #12423a, #071c17) !important; box-shadow: inset 0 0 0 2px #c9a24a, inset 0 0 0 4px #0a2a23, 0 3px 8px rgba(0,0,0,.45) !important;
   }
   .tc-middle-row { display: block !important; }
   .tc-dir { display: none !important; }
-  .tc-arrow { position: absolute !important; font-size: 0.62rem !important; line-height: 1 !important; color: rgba(255,255,255,.22) !important; margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; }
+  .tc-arrow { position: absolute !important; font-size: 0.5rem !important; line-height: 1 !important; color: rgba(255,255,255,.22) !important; margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; }
   .tc-arrow.tc-north { top: 3px; left: 50%; transform: translateX(-50%); }
   .tc-arrow.tc-south { bottom: 3px; left: 50%; transform: translateX(-50%); }
   .tc-arrow.tc-west  { left: 6px; top: 50%; transform: translateY(-50%); }
@@ -103,7 +103,7 @@
   .tc-arrow.tc-active { color: #ffd24a !important; text-shadow: 0 0 8px #ffb400 !important; animation: none !important; }
   .tc-wall { position: absolute; inset: 0; display: flex !important; flex-direction: column; align-items: center; justify-content: center; background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 0 4px !important; }
   .tc-wall-label { font-size: 0.52rem !important; letter-spacing: .12em; color: #7fbfae !important; }
-  .tc-wall-count { font-size: calc(var(--H) * 0.062) !important; line-height: 1 !important; color: #fff !important; font-weight: 800; }
+  .tc-wall-count { font-size: calc(var(--H) * 0.07) !important; line-height: 1 !important; color: #fff !important; font-weight: 800; }
 
   /* ── 5) 四家头像卡（四角）：头像 + 名字 + 分数，庄家徽章挂在头像角上 ── */
   .dc-cell > .seat-label {
@@ -129,14 +129,14 @@
   .dc-cell > .seat-label.lbl-west  { left: 12px !important; right: auto !important; top: 10px !important; bottom: auto !important; }
   .dc-cell > .seat-label.lbl-east  { right: 12px !important; left: auto !important; top: 10px !important; bottom: auto !important; }
   .dc-cell > .seat-label.lbl-south { left: 12px !important; right: auto !important; bottom: 8px !important; top: auto !important; }
-  .dc-cell > .seat-label.lbl-north { left: calc(50% + 150px) !important; right: auto !important; top: 8px !important; bottom: auto !important; }
+  .dc-cell > .seat-label.lbl-north { left: calc(50% + 5 * (var(--dw) + 1px) + 14px) !important; right: auto !important; top: 8px !important; bottom: auto !important; }
 
   /* ── 6) AI 座位：边上的小条 ── */
-  .seat-north { left: 0; right: 0; top: 2px; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .seat-north { left: 24%; right: auto; top: 6px; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
   .seat-north .ai-hand-flower-row { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 8px !important; min-height: 0 !important; }
   .seat-north .melds-row:empty { display: none !important; }
-  .seat-west  { left: 14px; top: calc(var(--H) * 0.30); }
-  .seat-east  { right: 14px; top: calc(var(--H) * 0.30); }
+  .seat-west  { left: calc(var(--H) * 0.2); top: calc(var(--H) * 0.12); }
+  .seat-east  { right: calc(var(--H) * 0.2); top: calc(var(--H) * 0.12); }
   .seat-west .ai-hand-flower-row, .seat-east .ai-hand-flower-row { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: 5px !important; }
   .seat-west .ai-hand-melds-col { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 4px !important; }
   .seat-east .ai-hand-melds-col { display: flex !important; flex-direction: row-reverse !important; align-items: flex-start; gap: 4px !important; }
