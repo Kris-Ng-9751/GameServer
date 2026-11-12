@@ -27,6 +27,7 @@
     --bam-wrap-w: calc(var(--tw) * 0.6); --pbam-wrap-w: calc(var(--pw) * 0.78); --dbam-wrap-w: calc(var(--dw) * 0.5);
   }
   body { padding: 0 !important; overflow: hidden; }
+  @supports (height: 100dvh) { :root { --H: calc(100dvh - 34px); } }
 
   /* ── 2) 顶栏压成一行 ── */
   .top-bar { padding: 1px max(env(safe-area-inset-right), 8px) 1px max(env(safe-area-inset-left), 8px) !important; min-height: 0 !important; height: 34px !important; gap: 6px !important; }
@@ -62,12 +63,14 @@
   .discard-center .discard-row {
     position: absolute !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-content: flex-start !important;
     gap: 1px !important; overflow: visible !important; min-height: 0 !important; z-index: 2;
+    box-sizing: content-box !important; padding: 3px !important; border-radius: 9px !important;
+    background: rgba(0, 30, 22, 0.16) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
     width: calc(10 * (var(--dw) + 1px)) !important; height: calc(2 * (var(--dh) + 1px)) !important; transform: none !important;
   }
-  .discard-center .dc-north .discard-row-h { top: calc(var(--H) * 0.178); left: calc(50% - 5 * (var(--dw) + 1px)); }
-  .discard-center .south-discard-row { bottom: calc(var(--ph) + 16px); left: calc(50% - 5 * (var(--dw) + 1px)); }
-  .discard-center .dc-west .discard-row-v { left: 76px; top: calc(var(--H) * 0.44); right: auto; }
-  .discard-center .dc-east .discard-row-v { right: 76px; left: auto; top: calc(var(--H) * 0.44); }
+  .discard-center .dc-north .discard-row-h { top: calc(var(--H) * 0.17); left: calc(50% - 5 * (var(--dw) + 1px) - 3px); }
+  .discard-center .south-discard-row { bottom: calc(var(--ph) + 16px); left: calc(50% - 5 * (var(--dw) + 1px) - 3px); }
+  .discard-center .dc-west .discard-row-v { left: 76px; top: calc(var(--H) * 0.37); right: auto; }
+  .discard-center .dc-east .discard-row-v { right: 76px; left: auto; top: calc(var(--H) * 0.37); }
   .discard-center .tile.discarded { width: var(--dw) !important; height: var(--dh) !important; margin: 0 !important; border-radius: 3px; transform: none !important; place-self: auto; }
   .discard-center .tile.discarded.active-discard { outline: 2px solid #ffd24a; outline-offset: 0; z-index: 3; box-shadow: 0 0 10px 2px rgba(255, 210, 74, .85) !important; animation: none !important; }
   .discard-center .tile.discarded .tile-corner { display: none !important; }
@@ -87,7 +90,7 @@
 
   /* 中央信息盘：牌山余量 + 四方向指示（轮到谁就亮谁） */
   .turn-compass, #turn-compass {
-    position: absolute !important; left: calc(50% - 56px); top: calc(var(--H) * 0.41); width: 112px !important; height: calc(var(--H) * 0.14) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 12px !important;
+    position: absolute !important; left: calc(50% - 56px); top: calc(var(--H) * 0.385); width: 112px !important; height: calc(var(--H) * 0.14) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 12px !important;
     background: linear-gradient(180deg, #0d2c26, #081c18) !important; box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 3px 8px rgba(0,0,0,.4) !important;
   }
   .tc-middle-row { display: block !important; }
@@ -152,7 +155,8 @@
   .seat .flowers-row:has(.flowers:empty) { display: none !important; }
   .seat .flowers-label { display: none !important; }
   .seat .flowers .tile, .seat .flowers-row .tile { width: var(--sw) !important; height: var(--sh) !important; transform: none !important; margin: 0 !important; font-size: 0.4rem !important; }
-  .seat .flowers .tile [class*="corner"] { display: none !important; }
+  .seat .flowers .tile [class*="corner"], .seat .flowers .tile .flower-top, .seat .flowers-row .tile .flower-top { display: none !important; }
+  .seat .flowers .tile .flower-art, .seat .flowers-row .tile .flower-art { width: 100% !important; height: 100% !important; padding: 1px !important; margin: 0 !important; }
   .seat-north .flowers-row { margin-top: 1px !important; }
 
   /* ── 7) 玩家：大手牌贴底，行动按钮浮在右上 ── */
@@ -166,7 +170,7 @@
   .hand-player { display: flex !important; gap: 1px !important; padding: 0 !important; min-height: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; overflow: visible !important; width: auto !important; max-width: none !important; }
   .tile.player { width: var(--pw) !important; height: var(--ph) !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
   .tile.player.drawn-tile { margin-left: calc(var(--pw) * 0.35) !important; }
-  .seat-south .flowers-row-above { position: absolute !important; left: 84px; bottom: 10px; width: calc(5 * (var(--sw) + 1px)); pointer-events: auto; }
+  .seat-south .flowers-row-above { position: absolute !important; left: calc(50% - 7.5 * (var(--pw) + 1px)); bottom: calc(var(--ph) + 12px); width: calc(5 * (var(--sw) + 1px)); pointer-events: auto; }
   .seat-south .action-bar {
     position: fixed !important; right: 58px !important; bottom: calc(var(--ph) + 8px) !important; left: auto !important; width: auto !important; max-width: 300px;
     display: flex; flex-wrap: wrap !important; justify-content: flex-end !important; align-content: flex-end !important; gap: 6px !important; padding: 0 !important; z-index: 20;
