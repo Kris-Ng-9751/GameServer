@@ -1,0 +1,10 @@
+/* mj-landscape3.css — 三人麻将横屏补充（放在 mj-landscape.css 之后）：无北家，头像仍在座位内，用 fixed 定位到角落 */
+@media (orientation: landscape) and (max-height: 560px) {
+  /* 三人麻将手牌 17 张：牌宽按 17.6 张算，左右给头像留位 */
+  :root { --pw: min(calc(var(--H) * 0.175), calc((100vw - 170px) / 17.6), 62px); }
+  .seat-north, .dc-compass-row.dc-north, .tc-arrow.tc-north { display: none !important; }
+  .seat > .seat-label { position: fixed !important; }
+  .seat-west  > .seat-label { left: 12px !important; right: auto !important; top: 44px !important; bottom: auto !important; }
+  .seat-east  > .seat-label { right: 12px !important; left: auto !important; top: 44px !important; bottom: auto !important; }
+  .seat-south > .seat-label { left: 12px !important; right: auto !important; bottom: 8px !important; top: auto !important; }
+}

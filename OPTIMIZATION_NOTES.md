@@ -100,3 +100,7 @@
 - 新增 mj-faces.js / mj-faces.css（仅 mahjong4.html 加载）：包装 renderTile，把萬/筒/條/風箭/飛改为 SVG 矢量牌面（viewBox 100×136），牌面随牌尺寸等比缩放，字号和图案不再因手牌/牌河/副露不同而错位。
 - 萬：粗黑数字 + 红「萬」；筒：红绿蓝同心圆（一筒为花圈）；條：红绿蓝竹节（一條为孔雀）；字牌：东南西北黑、中红、發绿、白板蓝框；飞牌金币。花牌沿用原插图，换金边底色。
 - 若 mj-faces.js 出错会回退到原牌面。规则和 DOM 类名不变。
+
+## 三人麻将：同步台麻手游风
+- mahjong3.html 引入 mj-landscape.css（横屏牌桌）、新增 mj-landscape3.css（无北家、头像 fixed 到角落、17 张手牌按 17.6 张算牌宽）、mj-faces.css/js（矢量牌面）。
+- mj-landscape.css 的头像卡选择器泛化为 `:is(.dc-cell, .seat) > .seat-label`，四人/三人共用。

@@ -1,4 +1,4 @@
-/* mj-landscape.css — 四人麻将「手机横屏」牌桌（雀魂式布局）。仅 mahjong4.html 加载，放在 mj-modern.css 之后。
+/* mj-landscape.css — 麻将「手机横屏」牌桌（台麻手游式布局）。mahjong4.html / mahjong3.html 加载，放在 mj-modern.css 之后。
    不改规则逻辑：保留全部 DOM id，只用 CSS 把牌桌重排成手游常见的横屏构图——
      · 整个牌桌铺满屏幕（不再整体缩放），尺寸全部跟随屏幕高度（--H）
      · 中央一块深色「牌河垫」：四家牌河围着中央信息盘，每家 7 张一排、最多 3 排（共 21 ≥ 20）
@@ -108,26 +108,26 @@
   .tc-wall-count { font-size: calc(var(--H) * 0.07) !important; line-height: 1 !important; color: #fff !important; font-weight: 800; }
 
   /* ── 5) 四家头像卡（四角）：头像 + 名字 + 分数，庄家徽章挂在头像角上 ── */
-  .dc-cell > .seat-label {
+  :is(.dc-cell, .seat) > .seat-label {
     position: absolute !important; transform: none !important; margin: 0 !important; z-index: 7; width: auto; max-width: none;
     display: flex !important; flex-direction: column; align-items: center; gap: 2px;
     padding: 0 !important; border-radius: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important;
     font-size: 0.58rem !important; line-height: 1.1; color: #f3efe0; text-shadow: 0 1px 2px rgba(0,0,0,.8);
   }
-  .dc-cell > .seat-label .game-avatar {
+  :is(.dc-cell, .seat) > .seat-label .game-avatar {
     width: calc(var(--H) * 0.14) !important; height: calc(var(--H) * 0.14) !important; line-height: 1 !important; font-size: calc(var(--H) * 0.09) !important;
     display: grid !important; place-items: center; border-radius: 8px !important; background: linear-gradient(180deg, #2a5d52, #14382f) !important; border: 2px solid #d9a93a !important; margin: 0 !important; overflow: hidden;
     box-shadow: 0 3px 8px rgba(0,0,0,.5);
   }
-  .dc-cell > .seat-label .seat-score {
+  :is(.dc-cell, .seat) > .seat-label .seat-score {
     display: inline-flex !important; align-items: center; gap: 4px; padding: 1px 8px 1px 2px !important; border-radius: 999px !important;
     background: linear-gradient(180deg, #2a1c0c, #120a02) !important; border: 1px solid #b8892b !important; color: #fff !important; font-size: 0.68rem !important; font-weight: 800; text-shadow: none;
   }
-  .dc-cell > .seat-label .seat-score::before {
+  :is(.dc-cell, .seat) > .seat-label .seat-score::before {
     content: "T"; display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff1a8, #e0a31c 70%); color: #6b4300; font-size: 0.55rem; font-weight: 900; text-shadow: none;
   }
-  .dc-cell > .seat-label .dealer-badge { position: absolute; top: -5px; left: -7px; padding: 1px 5px !important; font-size: 0.55rem !important; border-radius: 999px !important; z-index: 2; }
+  :is(.dc-cell, .seat) > .seat-label .dealer-badge { position: absolute; top: -5px; left: -7px; padding: 1px 5px !important; font-size: 0.55rem !important; border-radius: 999px !important; z-index: 2; }
   .dc-cell > .seat-label.lbl-west  { left: 12px !important; right: auto !important; top: 10px !important; bottom: auto !important; }
   .dc-cell > .seat-label.lbl-east  { right: 12px !important; left: auto !important; top: 10px !important; bottom: auto !important; }
   .dc-cell > .seat-label.lbl-south { left: 12px !important; right: auto !important; bottom: 8px !important; top: auto !important; }
