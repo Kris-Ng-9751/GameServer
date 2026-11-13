@@ -75,19 +75,21 @@
   .discard-center .tile.discarded.active-discard { outline: 2px solid #ffd24a; outline-offset: 0; z-index: 3; box-shadow: 0 0 10px 2px rgba(255, 210, 74, .85) !important; animation: none !important; }
   .discard-center .tile.discarded .tile-corner { display: none !important; }
   /* 牌河里的牌面：以 --dw 为基准重算字号/图案（原规则按玩家牌 --ptf 计算，缩小后会溢出） */
-  .discard-center .tile.discarded .tile-value { font-size: calc(var(--dw) * 0.66) !important; }
-  .discard-center .tile.discarded.zi-dark .tile-value, .discard-center .tile.discarded.zi-red .tile-value,
-  .discard-center .tile.discarded.zi-green .tile-value, .discard-center .tile.discarded.fei .tile-value { font-size: calc(var(--dw) * 0.8) !important; }
-  .discard-center .tile.discarded.zi-white .tile-value { font-size: calc(var(--dw) * 0.62) !important; }
-  .discard-center .tile.discarded .tile-suit { font-size: calc(var(--dw) * 0.42) !important; }
-  .discard-center .tile.discarded.man .man-value { font-size: calc(var(--dw) * 0.62) !important; line-height: 1 !important; }
-  .discard-center .tile.discarded.man .man-suit  { font-size: calc(var(--dw) * 0.46) !important; line-height: 1 !important; }
-  .discard-center .tile.discarded .pin-circle { width: var(--dpin-ds) !important; height: var(--dpin-ds) !important; }
-  .discard-center .tile.discarded .pin-grid { grid-template-columns: repeat(3, var(--dpin-cw)) !important; grid-template-rows: repeat(3, var(--dpin-ch)) !important; }
-  .discard-center .tile.discarded .pin-grid-2x4 { grid-template-columns: repeat(2, var(--dpin-cw)) !important; grid-template-rows: repeat(4, var(--dpin-ch)) !important; }
-  .discard-center .tile.discarded .tile-bamboo { grid-template-columns: repeat(var(--bam-cols, 2), var(--dbam-w)) !important; gap: 1px !important; }
-  .discard-center .tile.discarded .bam-stick { width: var(--dbam-w) !important; height: var(--dbam-h) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .tile-value { font-size: calc(var(--dw) * 0.66) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).zi-dark .tile-value, :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).zi-red .tile-value,
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).zi-green .tile-value, :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).fei .tile-value { font-size: calc(var(--dw) * 0.8) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).zi-white .tile-value { font-size: calc(var(--dw) * 0.62) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .tile-suit { font-size: calc(var(--dw) * 0.42) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).man .man-value { font-size: calc(var(--dw) * 0.62) !important; line-height: 1 !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile).man .man-suit  { font-size: calc(var(--dw) * 0.46) !important; line-height: 1 !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .pin-circle { width: var(--dpin-ds) !important; height: var(--dpin-ds) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .pin-grid { grid-template-columns: repeat(3, var(--dpin-cw)) !important; grid-template-rows: repeat(3, var(--dpin-ch)) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .pin-grid-2x4 { grid-template-columns: repeat(2, var(--dpin-cw)) !important; grid-template-rows: repeat(4, var(--dpin-ch)) !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .tile-bamboo { grid-template-columns: repeat(var(--bam-cols, 2), var(--dbam-w)) !important; gap: 1px !important; }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .bam-stick { width: var(--dbam-w) !important; height: var(--dbam-h) !important; }
 
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) { --pin-1s: var(--dpin-1s); --pin-ds: var(--dpin-ds); --pin-cw: var(--dpin-cw); --pin-ch: var(--dpin-ch); }
+  :is(.discard-center .tile.discarded, .seat:not(.seat-south) .melds-row .tile) .pin-single .pin-circle { width: var(--dpin-1s) !important; height: var(--dpin-1s) !important; }
   /* 中央信息盘：牌山余量 + 四方向指示（轮到谁就亮谁） */
   .turn-compass, #turn-compass {
     position: absolute !important; left: calc(50% - var(--H) * 0.1); top: calc(var(--H) * 0.4); width: calc(var(--H) * 0.2) !important; height: calc(var(--H) * 0.2) !important; display: block !important; padding: 0 !important; border: 0 !important; border-radius: 50% !important;
@@ -149,7 +151,8 @@
   .seat-north .melds-row { flex-direction: row !important; }
   .seat-west .melds-row, .seat-east .melds-row { flex-direction: column !important; }
   .seat .melds-row .meld { display: flex !important; flex-direction: row !important; margin: 0 !important; gap: 0; }
-  .seat-north .melds-row .tile, .seat-west .melds-row .tile, .seat-east .melds-row .tile { width: var(--sw) !important; height: var(--sh) !important; transform: none !important; margin: 0 !important; }
+  .seat-north .melds-row .tile, .seat-west .melds-row .tile, .seat-east .melds-row .tile { width: var(--dw) !important; height: var(--dh) !important; transform: none !important; margin: 0 !important; border-radius: 3px; }
+  .seat:not(.seat-south) .melds-row .tile .tile-corner { display: none !important; }
   .seat .flowers-row, .seat .flowers-row-side { display: flex !important; flex-wrap: wrap !important; flex-direction: row !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; gap: 1px !important; justify-content: center; }
   .seat .flowers, .seat .flowers-col { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 1px !important; justify-content: center; max-width: calc(5 * (var(--sw) + 1px)); }
   .seat .flowers-row:has(.flowers:empty) { display: none !important; }
@@ -167,6 +170,11 @@
   .seat-south .melds-row { display: flex !important; gap: 4px !important; padding: 0 !important; }
   .seat-south .melds-row .meld { display: flex; gap: 0; }
   .seat-south .melds-row .tile { width: var(--pw) !important; height: var(--ph) !important; }
+  .seat-south .melds-row { --tf: var(--ptf); --pin-cw: var(--ppin-cw); --pin-ch: var(--ppin-ch); --pin-ds: var(--ppin-ds); --pin-1s: var(--ppin-1s);
+    --bam-w: var(--pbam-w); --bam-h: var(--pbam-h); --bam-sw: var(--pbam-sw); --bam-sh: var(--pbam-sh); --bam-wrap-w: var(--pbam-wrap-w); }
+  .seat-south .melds-row .tile .tile-value { font-size: var(--ptf) !important; }
+  .seat-south .melds-row .tile.zi-dark .tile-value, .seat-south .melds-row .tile.zi-red .tile-value, .seat-south .melds-row .tile.zi-green .tile-value { font-size: calc(var(--pw) * 0.6) !important; }
+  .seat-south .melds-row .tile.man .man-value, .seat-south .melds-row .tile.man .man-suit { font-size: var(--ptf) !important; }
   .hand-player { display: flex !important; gap: 1px !important; padding: 0 !important; min-height: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; overflow: visible !important; width: auto !important; max-width: none !important; }
   .tile.player { width: var(--pw) !important; height: var(--ph) !important; min-width: 0 !important; min-height: 0 !important; margin: 0 !important; }
   .tile.player.drawn-tile { margin-left: calc(var(--pw) * 0.35) !important; }
